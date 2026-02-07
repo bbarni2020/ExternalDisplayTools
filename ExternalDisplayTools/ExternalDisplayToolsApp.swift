@@ -32,6 +32,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var bluetoothManager: BluetoothManager?
     private var screenLockObserver: Any?
     private var mouseMonitor: Any?
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        return false
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            ExternalNotchRequestManager.shared.handle(url: url)
+        }
+        closeExtraWindows()
+    }
+
+    private func closeExtraWindows() {
+        let windows = NSApplication.shared.windows
+        guard let primaryWindow = window ?? windows.first else { return }
+        for existingWindow in windows where existingWindow != primaryWindow {
+            existingWindow.close()
+        }
+    }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let window = NSApplication.shared.windows.first {

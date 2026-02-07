@@ -5,6 +5,7 @@ struct NotchView: View {
     @StateObject private var musicManager = MusicManager.shared
     @StateObject private var batteryManager = BatteryActivityManager.shared
     @StateObject private var nowPlayingManager = NowPlayingMetadataManager.shared
+    @StateObject private var externalRequestManager = ExternalNotchRequestManager.shared
     @State private var isHovering = false
     @State private var hoverTask: Task<Void, Never>?
     @State private var previousHover = false
@@ -33,7 +34,7 @@ struct NotchView: View {
                     bottomCornerRadius: coordinator.notchState == .open ? 35 : 15
                 ))
                 .frame(
-                    width: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 300 : coordinator.expandedNotchSize.width) : (!nowPlayingManager.title.isEmpty || coordinator.notchMode != .default ? 270 : coordinator.notchSize.width),
+                    width: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 300 : coordinator.expandedNotchSize.width) : (!nowPlayingManager.title.isEmpty ? 270 : coordinator.notchSize.width),
                     height: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 32 : coordinator.expandedNotchSize.height + 1) : coordinator.notchSize.height
                 )
                 .animation(.spring(response: 0.42, dampingFraction: 0.8), value: nowPlayingManager.title)
@@ -67,7 +68,6 @@ struct NotchView: View {
     
     private var closedNotchView: some View {
         Group {
-            // Music has priority over external requests
             if !nowPlayingManager.title.isEmpty {
                 HStack(spacing: 0) {
                     Group {
@@ -99,43 +99,6 @@ struct NotchView: View {
                 }
                 .frame(height: coordinator.notchSize.height)
                 .frame(maxHeight: .infinity, alignment: .center)
-            } else if case .externalApp(let request) = coordinator.notchMode {
-                HStack(spacing: 0) {
-                    Group {
-                        if let appIcon = request.appIcon {
-                            Image(nsImage: appIcon)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 18, height: 18)
-                                .cornerRadius(3)
-                        } else {
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 18, height: 18)
-                                .overlay(
-                                    Image(systemName: "app.fill")
-                                        .font(.system(size: 9))
-                                        .foregroundColor(.gray)
-                                )
-                        }
-                    }
-                    .padding(.leading, 12)
-                    .offset(y: -1)
-                    
-                    Spacer()
-                    
-                    // Simple indicator for external request
-                    HStack(spacing: 1.5) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Circle()
-                                .fill(Color.white.opacity(0.6))
-                                .frame(width: 2, height: 2)
-                        }
-                    }
-                    .padding(.trailing, 12)
-                }
-                .frame(height: coordinator.notchSize.height)
-                .frame(maxHeight: .infinity, alignment: .center)
             } else {
                 Rectangle()
                     .fill(Color.clear)
@@ -146,19 +109,28 @@ struct NotchView: View {
     
     private var expandedNotchView: some View {
         Group {
-            switch coordinator.currentView {
-            case .music:
-                musicView
-            case .call:
-                IncomingCallAnimation()
-            case .lowBattery:
-                LowBatteryAnimation()
-            default:
-                musicView
+            if let request = externalRequestManager.activeRequest {
+                externalRequestView(request)
+            } else {
+                switch coordinator.currentView {
+                case .music:
+                    musicView
+                case .call:
+                    IncomingCallAnimation()
+                case .lowBattery:
+                    LowBatteryAnimation()
+                default:
+                    musicView
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .allowsHitTesting(true)
+    }
+
+    private func externalRequestView(_ request: ExternalNotchRequest) -> some View {
+        ExternalNotchContentView(request: request)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var musicView: some View {
