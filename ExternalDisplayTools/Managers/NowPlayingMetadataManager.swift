@@ -20,6 +20,7 @@ final class NowPlayingMetadataManager: ObservableObject {
     private var process: Process?
     private var pipeHandler: JSONLinesPipeHandler?
     private var streamTask: Task<Void, Never>?
+    private var healthCheckTimer: Timer?
     
     private let mediaRemoteBundle: CFBundle?
     private var MRMediaRemoteSendCommandFunction: (@convention(c) (Int, AnyObject?) -> Void)?
@@ -41,6 +42,7 @@ final class NowPlayingMetadataManager: ObservableObject {
     
     deinit {
         streamTask?.cancel()
+        healthCheckTimer?.invalidate()
         
         if let pipeHandler = self.pipeHandler {
             Task { await pipeHandler.close() }
@@ -151,6 +153,12 @@ final class NowPlayingMetadataManager: ObservableObject {
             
             if let playing = payload.playing {
                 self.isPlaying = playing
+                
+                if !playing {
+                    self.startHealthCheck()
+                } else {
+                    self.stopHealthCheck()
+                }
             }
             
             let bundleId = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier ?? ""
@@ -165,6 +173,43 @@ final class NowPlayingMetadataManager: ObservableObject {
             
             self.error = nil
         }
+    }
+    
+    private func startHealthCheck() {
+        stopHealthCheck()
+        
+        healthCheckTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+            self?.checkMediaPlayerHealth()
+        }
+    }
+    
+    private func stopHealthCheck() {
+        healthCheckTimer?.invalidate()
+        healthCheckTimer = nil
+    }
+    
+    private func checkMediaPlayerHealth() {
+        guard !bundleId.isEmpty else { return }
+        
+        let isRunning = NSWorkspace.shared.runningApplications.contains { app in
+            app.bundleIdentifier == bundleId
+        }
+        
+        if !isRunning {
+            clearMediaInfo()
+        }
+    }
+    
+    private func clearMediaInfo() {
+        title = ""
+        artist = ""
+        album = ""
+        bundleId = ""
+        artworkImage = nil
+        duration = 0
+        elapsedTime = 0
+        isPlaying = false
+        stopHealthCheck()
     }
 }
 

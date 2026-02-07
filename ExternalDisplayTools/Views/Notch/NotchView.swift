@@ -7,6 +7,9 @@ struct NotchView: View {
     @StateObject private var nowPlayingManager = NowPlayingMetadataManager.shared
     @State private var isHovering = false
     @State private var hoverTask: Task<Void, Never>?
+    @State private var previousHover = false
+    @State private var playPauseHover = false
+    @State private var nextHover = false
     
     private let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8)
     private let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0)
@@ -30,9 +33,10 @@ struct NotchView: View {
                     bottomCornerRadius: coordinator.notchState == .open ? 35 : 15
                 ))
                 .frame(
-                    width: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 300 : coordinator.expandedNotchSize.width) : coordinator.notchSize.width,
-                    height: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 32 : coordinator.expandedNotchSize.height) : coordinator.notchSize.height
+                    width: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 300 : coordinator.expandedNotchSize.width) : (!nowPlayingManager.title.isEmpty || coordinator.notchMode != .default ? 270 : coordinator.notchSize.width),
+                    height: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 32 : coordinator.expandedNotchSize.height + 1) : coordinator.notchSize.height
                 )
+                .animation(.spring(response: 0.42, dampingFraction: 0.8), value: nowPlayingManager.title)
                 .animation(coordinator.notchState == .open ? openAnimation : closeAnimation, value: coordinator.notchState)
                 .onHover { hovering in
                     handleHover(hovering)
@@ -62,9 +66,82 @@ struct NotchView: View {
     }
     
     private var closedNotchView: some View {
-        Rectangle()
-            .fill(Color.clear)
-            .frame(height: coordinator.notchSize.height)
+        Group {
+            // Music has priority over external requests
+            if !nowPlayingManager.title.isEmpty {
+                HStack(spacing: 0) {
+                    Group {
+                        if let artwork = nowPlayingManager.artworkImage {
+                            Image(nsImage: artwork)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 18, height: 18)
+                                .cornerRadius(5)
+                        } else {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 18, height: 18)
+                                .overlay(
+                                    Image(systemName: "music.note")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.gray)
+                                )
+                        }
+                    }
+                    .padding(.leading, 12)
+                    .offset(y: -1)
+                    
+                    Spacer()
+                    
+                    MusicBarsAnimation(isPlaying: nowPlayingManager.isPlaying)
+                        .frame(height: 12)
+                        .padding(.trailing, 12)
+                }
+                .frame(height: coordinator.notchSize.height)
+                .frame(maxHeight: .infinity, alignment: .center)
+            } else if case .externalApp(let request) = coordinator.notchMode {
+                HStack(spacing: 0) {
+                    Group {
+                        if let appIcon = request.appIcon {
+                            Image(nsImage: appIcon)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 18, height: 18)
+                                .cornerRadius(3)
+                        } else {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 18, height: 18)
+                                .overlay(
+                                    Image(systemName: "app.fill")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(.gray)
+                                )
+                        }
+                    }
+                    .padding(.leading, 12)
+                    .offset(y: -1)
+                    
+                    Spacer()
+                    
+                    // Simple indicator for external request
+                    HStack(spacing: 1.5) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            Circle()
+                                .fill(Color.white.opacity(0.6))
+                                .frame(width: 2, height: 2)
+                        }
+                    }
+                    .padding(.trailing, 12)
+                }
+                .frame(height: coordinator.notchSize.height)
+                .frame(maxHeight: .infinity, alignment: .center)
+            } else {
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(height: coordinator.notchSize.height)
+            }
+        }
     }
     
     private var expandedNotchView: some View {
@@ -125,9 +202,16 @@ struct NotchView: View {
                         .font(.system(size: 14))
                         .foregroundColor(.white)
                         .frame(width: 32, height: 32)
+                 
+                        .scaleEffect(previousHover ? 1.2 : 1.0)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .contentShape(Rectangle())
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        previousHover = hovering
+                    }
+                }
                 
                 Button(action: {
                     nowPlayingManager.togglePlayPause()
@@ -136,9 +220,15 @@ struct NotchView: View {
                         .font(.system(size: 16))
                         .foregroundColor(.white)
                         .frame(width: 32, height: 32)
+                        .scaleEffect(playPauseHover ? 1.2 : 1.0)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .contentShape(Rectangle())
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        playPauseHover = hovering
+                    }
+                }
                 
                 Button(action: {
                     nowPlayingManager.nextTrack()
@@ -147,9 +237,15 @@ struct NotchView: View {
                         .font(.system(size: 14))
                         .foregroundColor(.white)
                         .frame(width: 32, height: 32)
+                        .scaleEffect(nextHover ? 1.2 : 1.0)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .contentShape(Rectangle())
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        nextHover = hovering
+                    }
+                }
             }
         }
     }
