@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var coordinator = NotchViewCoordinator.shared
+    
     var body: some View {
         ZStack {
             Color.clear
@@ -13,6 +15,14 @@ struct ContentView: View {
                 drawCorner(context: &context, position: .topRight, cornerSize: cornerSize, size: size)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            
+            VStack(spacing: 0) {
+                NotchView()
+                    .frame(maxWidth: .infinity, alignment: .center)
+                
+                Spacer(minLength: 0)
+            }
+            .ignoresSafeArea()
         }
         .ignoresSafeArea()
     }

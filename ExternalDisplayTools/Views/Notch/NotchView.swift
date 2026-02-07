@@ -25,8 +25,8 @@ struct NotchView: View {
                     )
                 )
                 .frame(
-                    width: coordinator.notchState == .open ? coordinator.expandedNotchSize.width : coordinator.notchSize.width,
-                    height: coordinator.notchState == .open ? coordinator.expandedNotchSize.height : coordinator.notchSize.height
+                    width: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 300 : coordinator.expandedNotchSize.width) : coordinator.notchSize.width,
+                    height: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 32 : coordinator.expandedNotchSize.height) : coordinator.notchSize.height
                 )
                 .animation(coordinator.notchState == .open ? openAnimation : closeAnimation, value: coordinator.notchState)
                 .contentShape(Rectangle())
@@ -61,6 +61,22 @@ struct NotchView: View {
     }
     
     private var expandedNotchView: some View {
+        Group {
+            switch coordinator.currentView {
+            case .music:
+                musicView
+            case .call:
+                IncomingCallAnimation()
+            case .lowBattery:
+                LowBatteryAnimation()
+            default:
+                musicView
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var musicView: some View {
         HStack(spacing: 12) {
             Image(nsImage: musicManager.albumArt)
                 .resizable()
@@ -87,8 +103,8 @@ struct NotchView: View {
                     musicManager.previousTrack()
                 }) {
                     Image(systemName: "backward.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.white)
+                    .font(.system(size: 14))
+                    .foregroundColor(.white)
                 }
                 .buttonStyle(PlainButtonStyle())
                 
@@ -96,8 +112,8 @@ struct NotchView: View {
                     musicManager.togglePlayPause()
                 }) {
                     Image(systemName: musicManager.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
+                    .font(.system(size: 16))
+                    .foregroundColor(.white)
                 }
                 .buttonStyle(PlainButtonStyle())
                 
@@ -105,13 +121,12 @@ struct NotchView: View {
                     musicManager.nextTrack()
                 }) {
                     Image(systemName: "forward.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.white)
+                    .font(.system(size: 14))
+                    .foregroundColor(.white)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var idleNotchView: some View {
@@ -157,20 +172,26 @@ struct NotchView: View {
     
     private var sneakPeekContent: some View {
         HStack(spacing: 12) {
-            if !coordinator.sneakPeek.icon.isEmpty {
-                Image(systemName: coordinator.sneakPeek.icon)
-                    .font(.system(size: 14))
+            if coordinator.sneakPeek.type == .bluetooth {
+                BluetoothConnectionAnimation()
+            } else if coordinator.sneakPeek.type == .unlock {
+                HelloAnimation()
+            } else {
+                if !coordinator.sneakPeek.icon.isEmpty {
+                    Image(systemName: coordinator.sneakPeek.icon)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                }
+                
+                ProgressView(value: coordinator.sneakPeek.value, total: 1.0)
+                    .progressViewStyle(LinearProgressViewStyle(tint: .white))
+                    .frame(height: 4)
+                
+                Text("\(Int(coordinator.sneakPeek.value * 100))%")
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.white)
+                    .frame(width: 40)
             }
-            
-            ProgressView(value: coordinator.sneakPeek.value, total: 1.0)
-                .progressViewStyle(LinearProgressViewStyle(tint: .white))
-                .frame(height: 4)
-            
-            Text("\(Int(coordinator.sneakPeek.value * 100))%")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.white)
-                .frame(width: 40)
         }
         .padding(.horizontal, 16)
     }
