@@ -4,6 +4,7 @@ struct NotchView: View {
     @StateObject private var coordinator = NotchViewCoordinator.shared
     @StateObject private var musicManager = MusicManager.shared
     @StateObject private var batteryManager = BatteryActivityManager.shared
+    @StateObject private var nowPlayingManager = NowPlayingMetadataManager.shared
     @State private var isHovering = false
     @State private var hoverTask: Task<Void, Never>?
     
@@ -24,17 +25,22 @@ struct NotchView: View {
                         radius: coordinator.notchState == .open ? 6 : 4
                     )
                 )
+                .clipShape(NotchShape(
+                    topCornerRadius: coordinator.notchState == .open ? 18 : 5,
+                    bottomCornerRadius: coordinator.notchState == .open ? 35 : 15
+                ))
                 .frame(
                     width: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 300 : coordinator.expandedNotchSize.width) : coordinator.notchSize.width,
                     height: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 32 : coordinator.expandedNotchSize.height) : coordinator.notchSize.height
                 )
                 .animation(coordinator.notchState == .open ? openAnimation : closeAnimation, value: coordinator.notchState)
-                .contentShape(Rectangle())
                 .onHover { hovering in
                     handleHover(hovering)
                 }
                 .onTapGesture {
-                    doOpen()
+                    if coordinator.notchState == .closed {
+                        doOpen()
+                    }
                 }
         }
         .allowsHitTesting(true)
@@ -50,6 +56,7 @@ struct NotchView: View {
                     .padding(.top, coordinator.notchSize.height + 8)
                     .padding(.horizontal, 32)
                     .padding(.bottom, 24)
+                    .allowsHitTesting(true)
             }
         }
     }
@@ -74,23 +81,35 @@ struct NotchView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .allowsHitTesting(true)
     }
     
     private var musicView: some View {
         HStack(spacing: 12) {
-            Image(nsImage: musicManager.albumArt)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 48, height: 48)
-                .cornerRadius(6)
+            if let artwork = nowPlayingManager.artworkImage {
+                Image(nsImage: artwork)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 48, height: 48)
+                    .cornerRadius(6)
+            } else {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        Image(systemName: "music.note")
+                            .font(.system(size: 20))
+                            .foregroundColor(.gray)
+                    )
+            }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(musicManager.songTitle.isEmpty ? "No Media Playing" : musicManager.songTitle)
+                Text(nowPlayingManager.title.isEmpty ? "No Media Playing" : nowPlayingManager.title)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
-                Text(musicManager.artistName.isEmpty ? "Select a song" : musicManager.artistName)
+                Text(nowPlayingManager.artist.isEmpty ? "Select a song" : nowPlayingManager.artist)
                     .font(.system(size: 11))
                     .foregroundColor(.white.opacity(0.7))
                     .lineLimit(1)
@@ -100,31 +119,37 @@ struct NotchView: View {
             
             HStack(spacing: 16) {
                 Button(action: {
-                    musicManager.previousTrack()
+                    nowPlayingManager.previousTrack()
                 }) {
                     Image(systemName: "backward.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(.white)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                        .frame(width: 32, height: 32)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .contentShape(Rectangle())
                 
                 Button(action: {
-                    musicManager.togglePlayPause()
+                    nowPlayingManager.togglePlayPause()
                 }) {
-                    Image(systemName: musicManager.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(.white)
+                    Image(systemName: nowPlayingManager.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
+                        .frame(width: 32, height: 32)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .contentShape(Rectangle())
                 
                 Button(action: {
-                    musicManager.nextTrack()
+                    nowPlayingManager.nextTrack()
                 }) {
                     Image(systemName: "forward.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(.white)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                        .frame(width: 32, height: 32)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .contentShape(Rectangle())
             }
         }
     }
@@ -203,7 +228,7 @@ struct NotchView: View {
     }
     
     private func doOpen() {
-        guard !musicManager.songTitle.isEmpty else { return }
+        guard !nowPlayingManager.title.isEmpty else { return }
         withAnimation(openAnimation) {
             coordinator.openNotch()
         }
@@ -219,7 +244,7 @@ struct NotchView: View {
             
             guard coordinator.notchState == .closed,
                   !coordinator.sneakPeek.show,
-                  !musicManager.songTitle.isEmpty else { return }
+                  !nowPlayingManager.title.isEmpty else { return }
             
             hoverTask = Task {
                 try? await Task.sleep(for: .seconds(0.3))
@@ -229,7 +254,7 @@ struct NotchView: View {
                     guard self.coordinator.notchState == .closed,
                           self.isHovering,
                           !self.coordinator.sneakPeek.show,
-                          !self.musicManager.songTitle.isEmpty else { return }
+                          !self.nowPlayingManager.title.isEmpty else { return }
                     
                     self.doOpen()
                 }
