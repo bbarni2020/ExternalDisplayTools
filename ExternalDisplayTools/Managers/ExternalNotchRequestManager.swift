@@ -38,9 +38,9 @@ final class ExternalNotchRequestManager: ObservableObject {
     private func clearActiveRequest(closeNotch: Bool) {
         dismissWorkItem?.cancel()
         dismissWorkItem = nil
-        activeRequest = nil
         if closeNotch {
             NotchViewCoordinator.shared.closeNotch()
         }
+        activeRequest = nil
     }
 }

@@ -55,7 +55,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let window = NSApplication.shared.windows.first {
             self.window = window
-            window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.maximumWindow)))
             window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
             window.isOpaque = false
             window.backgroundColor = .clear

@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		10C26B102F367AB000FA4739 /* MediaRemoteAdapter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10C26B0F2F367AAF00FA4739 /* MediaRemoteAdapter.framework */; };
+		10C26B112F367AB100FA4739 /* MediaRemoteAdapter.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 10C26B0F2F367AAF00FA4739 /* MediaRemoteAdapter.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		103786A62F37CBD700711835 /* SkyLightWindow in Frameworks */ = {isa = PBXBuildFile; productRef = 103786A72F37CBD700711835 /* SkyLightWindow */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		10C26AE82F2F7CF100FA4739 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -23,15 +29,44 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		10C26B122F367AC000FA4739 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				10C26B112F367AB100FA4739 /* MediaRemoteAdapter.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		10C26ADA2F2F7CF000FA4739 /* ExternalDisplayTools.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ExternalDisplayTools.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		10C26AE72F2F7CF100FA4739 /* ExternalDisplayToolsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ExternalDisplayToolsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		10C26AF12F2F7CF100FA4739 /* ExternalDisplayToolsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ExternalDisplayToolsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		10C26B0F2F367AAF00FA4739 /* MediaRemoteAdapter.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaRemoteAdapter.framework; path = ExternalDisplayTools/Resources/MediaRemoteAdapter.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		103784F92F377C1500711835 /* Exceptions for "ExternalDisplayTools" folder in "ExternalDisplayTools" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				Views/Battery/BatteryActivityManager.swift,
+			);
+			target = 10C26AD92F2F7CF000FA4739 /* ExternalDisplayTools */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		10C26ADC2F2F7CF000FA4739 /* ExternalDisplayTools */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				103784F92F377C1500711835 /* Exceptions for "ExternalDisplayTools" folder in "ExternalDisplayTools" target */,
+			);
 			path = ExternalDisplayTools;
 			sourceTree = "<group>";
 		};
@@ -52,6 +87,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				10C26B102F367AB000FA4739 /* MediaRemoteAdapter.framework in Frameworks */,
+				103786A62F37CBD700711835 /* SkyLightWindow in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -79,6 +116,7 @@
 				10C26AEA2F2F7CF100FA4739 /* ExternalDisplayToolsTests */,
 				10C26AF42F2F7CF100FA4739 /* ExternalDisplayToolsUITests */,
 				10C26ADB2F2F7CF000FA4739 /* Products */,
+				10C26B0E2F367A9E00FA4739 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -92,6 +130,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		10C26B0E2F367A9E00FA4739 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				10C26B0F2F367AAF00FA4739 /* MediaRemoteAdapter.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -102,6 +148,7 @@
 				10C26AD62F2F7CF000FA4739 /* Sources */,
 				10C26AD72F2F7CF000FA4739 /* Frameworks */,
 				10C26AD82F2F7CF000FA4739 /* Resources */,
+				10C26B122F367AC000FA4739 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -112,6 +159,7 @@
 			);
 			name = ExternalDisplayTools;
 			packageProductDependencies = (
+				103786A72F37CBD700711835 /* SkyLightWindow */,
 			);
 			productName = ExternalDisplayTools;
 			productReference = 10C26ADA2F2F7CF000FA4739 /* ExternalDisplayTools.app */;
@@ -195,6 +243,9 @@
 			);
 			mainGroup = 10C26AD12F2F7CF000FA4739;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				103786A52F37CBD700711835 /* XCRemoteSwiftPackageReference "SkyLightWindow" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 10C26ADB2F2F7CF000FA4739 /* Products */;
 			projectDirPath = "";
@@ -398,14 +449,21 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = SVGR6M2GFR;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ExternalDisplayTools",
+					"$(PROJECT_DIR)/ExternalDisplayTools/Resources",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ExternalDisplayTools/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ExternalDisplayTools;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_PREPROCESS = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -432,14 +490,21 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = SVGR6M2GFR;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ExternalDisplayTools",
+					"$(PROJECT_DIR)/ExternalDisplayTools/Resources",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ExternalDisplayTools/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ExternalDisplayTools;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_PREPROCESS = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -577,6 +642,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		103786A72F37CBD700711835 /* SkyLightWindow */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 103786A52F37CBD700711835 /* XCRemoteSwiftPackageReference "SkyLightWindow" */;
+			productName = SkyLightWindow;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		103786A52F37CBD700711835 /* XCRemoteSwiftPackageReference "SkyLightWindow" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/SkyLightWindow";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = 10C26AD22F2F7CF000FA4739 /* Project object */;
 }

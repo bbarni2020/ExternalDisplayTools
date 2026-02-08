@@ -1,4 +1,5 @@
 import SwiftUI
+import SkyLightWindow
 
 struct ContentView: View {
     @StateObject private var coordinator = NotchViewCoordinator.shared
@@ -25,6 +26,7 @@ struct ContentView: View {
             .ignoresSafeArea()
         }
         .ignoresSafeArea()
+        .moveToSky()
     }
     
     private func drawCorner(context: inout GraphicsContext, position: CornerPosition, cornerSize: CGFloat, size: CGSize = .zero) {
