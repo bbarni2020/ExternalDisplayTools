@@ -21,6 +21,9 @@ final class NowPlayingMetadataManager: ObservableObject {
     private var pipeHandler: JSONLinesPipeHandler?
     private var streamTask: Task<Void, Never>?
     private var healthCheckTimer: Timer?
+    private var pauseStartTime: Date?
+    
+    private let pauseThresholdSeconds: TimeInterval = 30
     
     private let mediaRemoteBundle: CFBundle?
     private var MRMediaRemoteSendCommandFunction: (@convention(c) (Int, AnyObject?) -> Void)?
@@ -155,8 +158,12 @@ final class NowPlayingMetadataManager: ObservableObject {
                 self.isPlaying = playing
                 
                 if !playing {
+                    if self.pauseStartTime == nil {
+                        self.pauseStartTime = Date()
+                    }
                     self.startHealthCheck()
                 } else {
+                    self.pauseStartTime = nil
                     self.stopHealthCheck()
                 }
             }
@@ -178,7 +185,7 @@ final class NowPlayingMetadataManager: ObservableObject {
     private func startHealthCheck() {
         stopHealthCheck()
         
-        healthCheckTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+        healthCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.checkMediaPlayerHealth()
         }
     }
@@ -189,6 +196,15 @@ final class NowPlayingMetadataManager: ObservableObject {
     }
     
     private func checkMediaPlayerHealth() {
+        let isNotchAppActive = NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "dev.masterbros.ExternalDisplayTools"
+        
+        if let pauseStart = pauseStartTime, Date().timeIntervalSince(pauseStart) >= pauseThresholdSeconds {
+            if !isNotchAppActive {
+                clearMediaInfo()
+            }
+            return
+        }
+        
         guard !bundleId.isEmpty else { return }
         
         let isRunning = NSWorkspace.shared.runningApplications.contains { app in
@@ -201,6 +217,7 @@ final class NowPlayingMetadataManager: ObservableObject {
     }
     
     private func clearMediaInfo() {
+        pauseStartTime = nil
         title = ""
         artist = ""
         album = ""

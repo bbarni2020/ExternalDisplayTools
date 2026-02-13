@@ -11,6 +11,7 @@ class NotchViewCoordinator: ObservableObject {
     @Published var sneakPeek: SneakPeek = SneakPeek()
     @Published var notchSize: NotchSize = NotchSize(width: 189, height: 32)
     @Published var expandedNotchSize: NotchSize = NotchSize(width: 420, height: 110)
+    @Published var shouldHideNotch: Bool = false
     
     private var sneakPeekDispatch: DispatchWorkItem?
     
@@ -26,14 +27,12 @@ class NotchViewCoordinator: ObservableObject {
     }
     
     private func setupSubscriptions() {
-        // Battery Low Power Mode
         batteryManager.$isLowPowerMode
             .sink { [weak self] isLowPower in
                 self?.handleLowPowerModeChange(isLowPower)
             }
             .store(in: &cancellables)
             
-        // Screen Lock
         screenStateManager.$isScreenLocked
             .sink { [weak self] isLocked in
                 if !isLocked {
@@ -42,19 +41,32 @@ class NotchViewCoordinator: ObservableObject {
             }
             .store(in: &cancellables)
             
-        // Call
+        screenStateManager.$isFullScreenAppActive
+            .sink { [weak self] isFullScreen in
+                self?.handleFullScreenChange(isFullScreen)
+            }
+            .store(in: &cancellables)
+            
         callManager.$isRinging
             .sink { [weak self] isRinging in
                 self?.handleCallStateChange(isRinging)
             }
             .store(in: &cancellables)
             
-        // Bluetooth
         bluetoothManager.$isConnected
             .sink { [weak self] isConnected in
                 self?.triggerBluetoothAnimation(connected: isConnected)
             }
             .store(in: &cancellables)
+    }
+    
+    private func handleFullScreenChange(_ isFullScreen: Bool) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            shouldHideNotch = isFullScreen
+            if isFullScreen && notchState == .open {
+                notchState = .closed
+            }
+        }
     }
     
     private func handleLowPowerModeChange(_ isLowPower: Bool) {

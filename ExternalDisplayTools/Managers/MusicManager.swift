@@ -130,7 +130,7 @@ class MusicManager: ObservableObject {
         } else {
             debounceIdleTask?.cancel()
             debounceIdleTask = Task { [weak self] in
-                try? await Task.sleep(for: .seconds(5))
+                try? await Task.sleep(for: .seconds(30))
                 withAnimation {
                     self?.isPlayerIdle = !(self?.isPlaying ?? false)
                 }

@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+class OverlayWindow: NSWindow {
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
+}
+
 @main
 struct ExternalDisplayToolsApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -55,15 +60,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let window = NSApplication.shared.windows.first {
             self.window = window
-            window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+            window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
             window.isOpaque = false
             window.backgroundColor = .clear
             window.hasShadow = false
             window.styleMask = [.borderless, .fullSizeContentView]
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
-
             window.hidesOnDeactivate = false
+            window.level = .screenSaver
             
             if let screen = NSScreen.main {
                 window.setFrame(screen.frame, display: true)
@@ -103,35 +108,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func setupMouseTracking() {
-        guard let window = window else { return }
+        guard let window = self.window else { return }
         
-        let trackingArea = NSTrackingArea(
-            rect: .zero,
-            options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways, .inVisibleRect],
-            owner: window,
-            userInfo: nil
-        )
-        window.contentView?.addTrackingArea(trackingArea)
-        
-        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved]) { event in
-            guard let window = self.window,
+        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] event in
+            guard let self = self,
+                  let window = self.window,
                   let contentView = window.contentView else { return event }
             
             let mouseLocation = event.locationInWindow
-            let notchFrame = CGRect(
-                x: (contentView.bounds.width - NotchViewCoordinator.shared.notchSize.width) / 2,
-                y: contentView.bounds.height - NotchViewCoordinator.shared.notchSize.height,
-                width: NotchViewCoordinator.shared.notchSize.width + 100,
-                height: NotchViewCoordinator.shared.notchSize.height + 50
-            )
+            let coordinator = NotchViewCoordinator.shared
             
-            if notchFrame.contains(mouseLocation) {
-                window.ignoresMouseEvents = false
+            let interactionFrame: CGRect
+            if coordinator.notchState == .open {
+                interactionFrame = CGRect(
+                    x: 0,
+                    y: 0,
+                    width: contentView.bounds.width,
+                    height: contentView.bounds.height
+                )
             } else {
-                window.ignoresMouseEvents = true
+                interactionFrame = CGRect(
+                    x: (contentView.bounds.width - coordinator.notchSize.width) / 2 - 50,
+                    y: contentView.bounds.height - coordinator.notchSize.height - 100,
+                    width: coordinator.notchSize.width + 100,
+                    height: coordinator.notchSize.height + 150
+                )
             }
             
-            return event
+            if interactionFrame.contains(mouseLocation) {
+                return event
+            } else {
+                return nil
+            }
         }
     }
     

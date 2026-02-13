@@ -11,6 +11,7 @@ struct NotchView: View {
     @State private var previousHover = false
     @State private var playPauseHover = false
     @State private var nextHover = false
+    @State private var isClickedOpen = false
     
     private let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8)
     private let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0)
@@ -37,14 +38,27 @@ struct NotchView: View {
                     width: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 300 : coordinator.expandedNotchSize.width) : (!nowPlayingManager.title.isEmpty ? 270 : coordinator.notchSize.width),
                     height: coordinator.notchState == .open ? (coordinator.currentView == .lowBattery ? 32 : coordinator.expandedNotchSize.height + 1) : coordinator.notchSize.height
                 )
+                .scaleEffect(
+                    coordinator.shouldHideNotch ? 0.4 : 1.0,
+                    anchor: .top
+                )
+                .offset(y: coordinator.shouldHideNotch ? -50 : 0)
+                .opacity(coordinator.shouldHideNotch ? 0 : 1)
                 .animation(.spring(response: 0.42, dampingFraction: 0.8), value: nowPlayingManager.title)
                 .animation(coordinator.notchState == .open ? openAnimation : closeAnimation, value: coordinator.notchState)
+                .animation(.spring(response: 0.5, dampingFraction: 0.75), value: coordinator.shouldHideNotch)
                 .onHover { hovering in
-                    handleHover(hovering)
+                    if !coordinator.shouldHideNotch {
+                        handleHover(hovering)
+                    }
                 }
                 .onTapGesture {
-                    if coordinator.notchState == .closed {
+                    if coordinator.notchState == .closed && !coordinator.shouldHideNotch {
+                        isClickedOpen = true
                         doOpen()
+                    } else if coordinator.notchState == .open && isClickedOpen && !coordinator.shouldHideNotch {
+                        isClickedOpen = false
+                        coordinator.closeNotch()
                     }
                 }
         }
@@ -337,7 +351,7 @@ struct NotchView: View {
                         self.isHovering = false
                     }
                     
-                    if self.coordinator.notchState == .open {
+                    if self.coordinator.notchState == .open && !self.isClickedOpen {
                         self.coordinator.closeNotch()
                     }
                 }
