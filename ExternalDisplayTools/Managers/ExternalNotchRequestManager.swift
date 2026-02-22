@@ -18,9 +18,17 @@ final class ExternalNotchRequestManager: ObservableObject {
         MusicManager.shared.$isPlayerIdle
             .sink { _ in }
             .store(in: &cancellables)
+
+        ScreenStateManager.shared.$isScreenLocked
+            .sink { [weak self] isLocked in
+                guard isLocked else { return }
+                self?.clearActiveRequest(closeNotch: true)
+            }
+            .store(in: &cancellables)
     }
 
     func handle(url: URL) {
+        guard !ScreenStateManager.shared.isScreenLocked else { return }
         guard activeRequest == nil else { return }
         guard let request = ExternalNotchRequestParser.parse(url: url) else { return }
 

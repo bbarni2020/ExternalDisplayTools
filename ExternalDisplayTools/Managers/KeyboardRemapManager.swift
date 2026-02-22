@@ -53,6 +53,7 @@ final class KeyboardRemapManager: ObservableObject {
     private var characterToKeyCode: [String: CGKeyCode] = [:]
     private let keyMapLock = NSLock()
     private var inputSourceObserver: Any?
+    private var activeTapLocation: CGEventTapLocation?
 
     private enum Keys {
         static let remapEnabled = "settings.keyboard.remapEnabled"
@@ -209,19 +210,31 @@ final class KeyboardRemapManager: ObservableObject {
             return manager.handle(event: event, type: type)
         }
 
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .defaultTap,
-            eventsOfInterest: CGEventMask(mask),
-            callback: callback,
-            userInfo: Unmanaged.passUnretained(self).toOpaque()
-        ) else {
-            lastStartError = "Unable to start key remapping event tap."
+        var createdTap: CFMachPort?
+        var createdLocation: CGEventTapLocation?
+
+        for location in [CGEventTapLocation.cghidEventTap, CGEventTapLocation.cgSessionEventTap] {
+            if let tap = CGEvent.tapCreate(
+                tap: location,
+                place: .headInsertEventTap,
+                options: .defaultTap,
+                eventsOfInterest: CGEventMask(mask),
+                callback: callback,
+                userInfo: Unmanaged.passUnretained(self).toOpaque()
+            ) {
+                createdTap = tap
+                createdLocation = location
+                break
+            }
+        }
+
+        guard let tap = createdTap else {
+            lastStartError = "Unable to start key remapping event tap. Grant Accessibility and Input Monitoring permissions."
             return
         }
 
         eventTap = tap
+        activeTapLocation = createdLocation
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
 
         if let runLoopSource {
@@ -240,6 +253,7 @@ final class KeyboardRemapManager: ObservableObject {
         }
         runLoopSource = nil
         eventTap = nil
+        activeTapLocation = nil
     }
 
     private func handle(event: CGEvent, type: CGEventType) -> Unmanaged<CGEvent>? {

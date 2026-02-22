@@ -6,6 +6,7 @@ struct NotchView: View {
     @StateObject private var batteryManager = BatteryActivityManager.shared
     @StateObject private var nowPlayingManager = NowPlayingMetadataManager.shared
     @StateObject private var externalRequestManager = ExternalNotchRequestManager.shared
+    @StateObject private var screenStateManager = ScreenStateManager.shared
     @State private var isHovering = false
     @State private var previousHover = false
     @State private var playPauseHover = false
@@ -17,6 +18,8 @@ struct NotchView: View {
     @State private var contentOpacity: Double = 1.0
     @State private var contentScale: CGFloat = 1.0
     @State private var contentBlur: CGFloat = 0
+    @State private var lockIconScale: CGFloat = 1.0
+    @State private var showUnlockedPreview = false
     @Namespace private var nowPlayingArtworkNamespace
 
     private let notchMorphAnimation = Animation.spring(response: 0.36, dampingFraction: 0.94, blendDuration: 0.12)
@@ -111,6 +114,31 @@ struct NotchView: View {
         .onChange(of: externalRequestManager.activeRequest) { _ in
             animateContentTransition()
         }
+        .onChange(of: screenStateManager.isScreenLocked) { isLocked in
+            if isLocked {
+                showUnlockedPreview = false
+                withAnimation(.easeOut(duration: 0.16)) {
+                    lockIconScale = 1.0
+                }
+            } else {
+                showUnlockedPreview = true
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.62, blendDuration: 0.05)) {
+                    lockIconScale = 1.14
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    withAnimation(.easeOut(duration: 0.22)) {
+                        lockIconScale = 1.0
+                    }
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    if !screenStateManager.isScreenLocked {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            showUnlockedPreview = false
+                        }
+                    }
+                }
+            }
+        }
         .allowsHitTesting(true)
     }
     
@@ -147,7 +175,36 @@ struct NotchView: View {
     
     private var closedNotchView: some View {
         Group {
-            if !nowPlayingManager.title.isEmpty {
+            if screenStateManager.isScreenLocked {
+                HStack(spacing: 0) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                        .frame(width: 20, height: 20)
+                        .contentTransition(.symbolEffect(.replace))
+                        .padding(.leading, 14)
+
+                    Spacer()
+                }
+                .frame(height: coordinator.notchSize.height)
+                .frame(maxHeight: .infinity, alignment: .center)
+                .transition(.opacity)
+            } else if showUnlockedPreview {
+                HStack(spacing: 0) {
+                    Image(systemName: "lock.open.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                        .frame(width: 20, height: 20)
+                        .contentTransition(.symbolEffect(.replace))
+                        .scaleEffect(lockIconScale)
+                        .padding(.leading, 14)
+
+                    Spacer()
+                }
+                .frame(height: coordinator.notchSize.height)
+                .frame(maxHeight: .infinity, alignment: .center)
+                .transition(.opacity)
+            } else if !nowPlayingManager.title.isEmpty {
                 HStack(spacing: 0) {
                     nowPlayingArtwork(size: 18, cornerRadius: 5, iconSize: 10)
                     .padding(.leading, 12)
@@ -164,17 +221,22 @@ struct NotchView: View {
                 .frame(maxHeight: .infinity, alignment: .center)
                 .transition(.opacity)
             } else {
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(height: coordinator.notchSize.height)
-                    .transition(.opacity)
+                HStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color.clear)
+                }
+                .frame(height: coordinator.notchSize.height)
+                .frame(maxHeight: .infinity, alignment: .center)
+                .transition(.opacity)
             }
         }
     }
     
     private var expandedNotchView: some View {
         Group {
-            if let request = externalRequestManager.activeRequest {
+            if screenStateManager.isScreenLocked {
+                lockedExpandedView
+            } else if let request = externalRequestManager.activeRequest {
                 externalRequestView(request)
             } else {
                 switch coordinator.currentView {
@@ -191,6 +253,20 @@ struct NotchView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .allowsHitTesting(true)
+    }
+
+    private var lockedExpandedView: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.white.opacity(0.92))
+
+            Text("Screen Locked")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white.opacity(0.9))
+
+            Spacer(minLength: 0)
+        }
     }
 
     private func externalRequestView(_ request: ExternalNotchRequest) -> some View {
@@ -371,6 +447,7 @@ struct NotchView: View {
     }
     
     private func doOpen() {
+        guard !screenStateManager.isScreenLocked else { return }
         guard !nowPlayingManager.title.isEmpty else { return }
         withAnimation(notchMorphAnimation) {
             coordinator.openNotch()
@@ -425,7 +502,7 @@ struct NotchView: View {
             return CGSize(width: width, height: height)
         }
 
-        let width = nowPlayingManager.title.isEmpty ? coordinator.notchSize.width : 270
+        let width: CGFloat = (!nowPlayingManager.title.isEmpty || screenStateManager.isScreenLocked || showUnlockedPreview) ? 270 : coordinator.notchSize.width
         return CGSize(width: width, height: coordinator.notchSize.height)
     }
 

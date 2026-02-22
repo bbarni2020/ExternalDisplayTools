@@ -3,13 +3,15 @@ import Combine
 import AppKit
 
 class ScreenStateManager: ObservableObject {
+    static let shared = ScreenStateManager()
+
     @Published var isScreenLocked: Bool = false
     @Published var isFullScreenAppActive: Bool = false
     
     private var cancellables = Set<AnyCancellable>()
     private var checkTimer: Timer?
     
-    init() {
+    private init() {
         setupObservers()
         startFullScreenMonitoring()
     }

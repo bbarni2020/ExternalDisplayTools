@@ -8,14 +8,14 @@ class NotchViewCoordinator: ObservableObject {
     @Published var currentView: NotchViews = .home
     @Published var notchState: NotchState = .closed
     @Published var sneakPeek: SneakPeek = SneakPeek()
-    @Published var notchSize: NotchSize = NotchSize(width: 189, height: 32)
+    @Published var notchSize: NotchSize = NotchSize(width: 189, height: 33)
     @Published var expandedNotchSize: NotchSize = NotchSize(width: 420, height: 110)
     @Published var shouldHideNotch: Bool = false
     
     private var sneakPeekDispatch: DispatchWorkItem?
     
     private let batteryManager = BatteryActivityManager.shared
-    private let screenStateManager = ScreenStateManager()
+    private let screenStateManager = ScreenStateManager.shared
     private let callManager = CallManager()
     private let bluetoothManager = BluetoothManager.shared
     

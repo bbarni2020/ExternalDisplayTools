@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SkyLightWindow
 
 class OverlayWindow: NSWindow {
     override var canBecomeKey: Bool { false }
@@ -110,7 +111,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.hidesOnDeactivate = false
+        window.canBecomeVisibleWithoutLogin = true
         window.level = .screenSaver
+        SkyLightOperator.shared.delegateWindow(window)
     }
 
     private func positionNotchHostWindow(_ window: NSWindow, in screen: NSScreen?) {
