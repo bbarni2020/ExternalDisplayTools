@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		103786A62F37CBD700711835 /* SkyLightWindow in Frameworks */ = {isa = PBXBuildFile; productRef = 103786A72F37CBD700711835 /* SkyLightWindow */; };
 		10C26B102F367AB000FA4739 /* MediaRemoteAdapter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10C26B0F2F367AAF00FA4739 /* MediaRemoteAdapter.framework */; };
 		10C26B112F367AB100FA4739 /* MediaRemoteAdapter.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 10C26B0F2F367AAF00FA4739 /* MediaRemoteAdapter.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		103786A62F37CBD700711835 /* SkyLightWindow in Frameworks */ = {isa = PBXBuildFile; productRef = 103786A72F37CBD700711835 /* SkyLightWindow */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -643,14 +643,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCSwiftPackageProductDependency section */
-		103786A72F37CBD700711835 /* SkyLightWindow */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 103786A52F37CBD700711835 /* XCRemoteSwiftPackageReference "SkyLightWindow" */;
-			productName = SkyLightWindow;
-		};
-/* End XCSwiftPackageProductDependency section */
-
 /* Begin XCRemoteSwiftPackageReference section */
 		103786A52F37CBD700711835 /* XCRemoteSwiftPackageReference "SkyLightWindow" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -661,6 +653,14 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		103786A72F37CBD700711835 /* SkyLightWindow */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 103786A52F37CBD700711835 /* XCRemoteSwiftPackageReference "SkyLightWindow" */;
+			productName = SkyLightWindow;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 10C26AD22F2F7CF000FA4739 /* Project object */;
 }

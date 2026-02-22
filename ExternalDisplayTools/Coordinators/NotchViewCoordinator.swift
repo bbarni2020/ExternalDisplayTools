@@ -1,6 +1,5 @@
 import AppKit
 import Combine
-import SwiftUI
 
 @MainActor
 class NotchViewCoordinator: ObservableObject {
@@ -61,32 +60,21 @@ class NotchViewCoordinator: ObservableObject {
     }
     
     private func handleFullScreenChange(_ isFullScreen: Bool) {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            shouldHideNotch = isFullScreen
-            if isFullScreen && notchState == .open {
-                notchState = .closed
-            }
+        shouldHideNotch = isFullScreen
+        if isFullScreen && notchState == .open {
+            notchState = .closed
         }
     }
     
-    private func handleLowPowerModeChange(_ isLowPower: Bool) {
-        if isLowPower {
-            if notchState == .closed {
-                // If closed, we might want to show a sneak peek or change state
-                // For now, let's just update the view if we are open, or handle it in NotchView
-            }
-        }
-    }
+    private func handleLowPowerModeChange(_ : Bool) {}
     
     private func handleCallStateChange(_ isRinging: Bool) {
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-            if isRinging {
-                self.currentView = .call
-                self.notchState = .open
-            } else {
-                self.currentView = .home
-                self.notchState = .closed
-            }
+        if isRinging {
+            self.currentView = .call
+            self.notchState = .open
+        } else {
+            self.currentView = .home
+            self.notchState = .closed
         }
     }
     
@@ -99,15 +87,11 @@ class NotchViewCoordinator: ObservableObject {
     }
     
     func openNotch() {
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-            notchState = .open
-        }
+        notchState = .open
     }
     
     func closeNotch() {
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
-            notchState = .closed
-        }
+        notchState = .closed
     }
     
     func toggleNotch() {
@@ -120,15 +104,10 @@ class NotchViewCoordinator: ObservableObject {
     
     func showSneakPeek(type: SneakContentType, value: CGFloat = 0, icon: String = "") {
         sneakPeekDispatch?.cancel()
-        
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            sneakPeek = SneakPeek(show: true, type: type, value: value, icon: icon)
-        }
+        sneakPeek = SneakPeek(show: true, type: type, value: value, icon: icon)
         
         let workItem = DispatchWorkItem { [weak self] in
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                self?.sneakPeek.show = false
-            }
+            self?.sneakPeek.show = false
         }
         
         sneakPeekDispatch = workItem
@@ -137,8 +116,6 @@ class NotchViewCoordinator: ObservableObject {
     
     func hideSneakPeek() {
         sneakPeekDispatch?.cancel()
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            sneakPeek.show = false
-        }
+        sneakPeek.show = false
     }
 }

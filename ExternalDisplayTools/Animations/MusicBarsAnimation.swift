@@ -16,6 +16,7 @@ struct MusicBarsAnimation: View {
     private let barSpacing: CGFloat = 2.5
     private let maxHeight: CGFloat = 11.0
     private let dotSize: CGFloat = 2.2
+    private let idleHeight: CGFloat = 0.22
     
     var body: some View {
         HStack(alignment: .center, spacing: barSpacing) {
@@ -24,9 +25,14 @@ struct MusicBarsAnimation: View {
             BarShape(height: bar3, isPlaying: isPlaying)
             BarShape(height: bar4, isPlaying: isPlaying)
         }
+        .scaleEffect(isPlaying ? 1.0 : 0.92)
+        .opacity(isPlaying ? 1.0 : 0.75)
+        .animation(.easeInOut(duration: 0.2), value: isPlaying)
         .onAppear {
             if isPlaying && !reduceMotion {
                 startAnimating()
+            } else {
+                stopAnimating()
             }
         }
         .onChange(of: isPlaying) { _, playing in
@@ -40,56 +46,67 @@ struct MusicBarsAnimation: View {
         .onChange(of: reduceMotion) { _, reduced in
             if reduced {
                 animationTask?.cancel()
-                stopAnimating()
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    bar1 = isPlaying ? 0.72 : idleHeight
+                    bar2 = isPlaying ? 0.48 : idleHeight
+                    bar3 = isPlaying ? 0.86 : idleHeight
+                    bar4 = isPlaying ? 0.56 : idleHeight
+                }
             } else if isPlaying {
                 startAnimating()
+            } else {
+                stopAnimating()
             }
         }
     }
     
     private func startAnimating() {
+        animationTask?.cancel()
+
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
+            bar1 = 0.55
+            bar2 = 0.43
+            bar3 = 0.64
+            bar4 = 0.5
+        }
+
         animationTask = Task {
-            while !Task.isCancelled && isPlaying {
+            while !Task.isCancelled {
                 let randomHeights = [
-                    CGFloat.random(in: 0.4...0.95),
-                    CGFloat.random(in: 0.3...0.9),
-                    CGFloat.random(in: 0.45...1.0),
-                    CGFloat.random(in: 0.35...0.85)
-                ]
-                
-                let randomDurations = [
-                    Double.random(in: 0.35...0.55),
-                    Double.random(in: 0.3...0.5),
-                    Double.random(in: 0.4...0.6),
-                    Double.random(in: 0.35...0.55)
+                    CGFloat.random(in: 0.38...0.88),
+                    CGFloat.random(in: 0.3...0.82),
+                    CGFloat.random(in: 0.46...0.94),
+                    CGFloat.random(in: 0.34...0.8)
                 ]
                 
                 await MainActor.run {
-                    withAnimation(.easeInOut(duration: randomDurations[0])) {
+                    let pulse = Animation.spring(response: 0.3, dampingFraction: 0.82, blendDuration: 0.06)
+
+                    withAnimation(pulse.speed(0.98)) {
                         bar1 = randomHeights[0]
                     }
-                    withAnimation(.easeInOut(duration: randomDurations[1])) {
+                    withAnimation(pulse.speed(1.06)) {
                         bar2 = randomHeights[1]
                     }
-                    withAnimation(.easeInOut(duration: randomDurations[2])) {
+                    withAnimation(pulse.speed(0.93)) {
                         bar3 = randomHeights[2]
                     }
-                    withAnimation(.easeInOut(duration: randomDurations[3])) {
+                    withAnimation(pulse.speed(1.02)) {
                         bar4 = randomHeights[3]
                     }
                 }
                 
-                try? await Task.sleep(for: .milliseconds(Int.random(in: 250...450)))
+                try? await Task.sleep(for: .milliseconds(Int.random(in: 210...320)))
             }
         }
     }
     
     private func stopAnimating() {
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-            bar1 = 0.0
-            bar2 = 0.0
-            bar3 = 0.0
-            bar4 = 0.0
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+            bar1 = idleHeight
+            bar2 = idleHeight
+            bar3 = idleHeight
+            bar4 = idleHeight
         }
     }
     
@@ -107,7 +124,7 @@ struct MusicBarsAnimation: View {
             )
             .frame(
                 width: barWidth,
-                height: isPlaying ? max(dotSize, maxHeight * height) : dotSize
+                height: max(dotSize, maxHeight * height)
             )
     }
 }

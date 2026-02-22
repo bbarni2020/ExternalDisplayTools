@@ -1,31 +1,61 @@
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
-    @StateObject private var coordinator = NotchViewCoordinator.shared
-    @StateObject private var musicManager = MusicManager.shared
+    @StateObject private var settings = AppSettings.shared
+    @StateObject private var keyboardManager = KeyboardRemapManager.shared
     
     @State private var selectedTab: SettingsTab = .general
     
     enum SettingsTab: String, CaseIterable {
         case general = "General"
-        case appearance = "Appearance"
-        case media = "Media"
         case battery = "Battery"
+        case keyboard = "Keyboard"
     }
     
     var body: some View {
         HStack(spacing: 0) {
             sidebar
-            
-            Divider()
-            
+
             contentView
         }
-        .frame(width: 600, height: 400)
+        .frame(width: 700, height: 460)
+        .background(
+            ZStack {
+                Color(nsColor: NSColor(calibratedWhite: 0.10, alpha: 1.0))
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.06),
+                        Color.black.opacity(0.12)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        )
+        .preferredColorScheme(.dark)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.16), lineWidth: 0.9)
+        )
+        .background(SettingsWindowConfigurator())
+        .onAppear {
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        .onDisappear {
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
     
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 4) {
+            Text("Settings")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.white.opacity(0.9))
+                .padding(.bottom, 8)
+
             ForEach(SettingsTab.allCases, id: \.self) { tab in
                 Button(action: {
                     selectedTab = tab
@@ -43,18 +73,28 @@ struct SettingsView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(selectedTab == tab ? Color.accentColor.opacity(0.2) : Color.clear)
+                            .fill(selectedTab == tab ? Color.white.opacity(0.18) : Color.clear)
                     )
-                    .foregroundColor(selectedTab == tab ? .accentColor : .primary)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.white.opacity(selectedTab == tab ? 0.25 : 0), lineWidth: 0.7)
+                    )
+                    .foregroundColor(.white.opacity(selectedTab == tab ? 0.96 : 0.72))
                 }
                 .buttonStyle(PlainButtonStyle())
             }
             
             Spacer()
         }
-        .padding(12)
-        .frame(width: 180)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .padding(14)
+        .frame(width: 210)
+        .background(
+            ZStack {
+                Color.white.opacity(0.06)
+                GlassBackground(material: .sidebar)
+                    .opacity(0.55)
+            }
+        )
     }
     
     private var contentView: some View {
@@ -63,151 +103,343 @@ struct SettingsView: View {
                 switch selectedTab {
                 case .general:
                     GeneralSettingsView()
-                case .appearance:
-                    AppearanceSettingsView()
-                case .media:
-                    MediaSettingsView()
                 case .battery:
                     BatterySettingsView()
+                case .keyboard:
+                    KeyboardSettingsView()
                 }
             }
             .padding(24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            ZStack {
+                Color.black.opacity(0.22)
+                GlassBackground(material: .menu)
+                    .opacity(0.45)
+            }
+            .overlay(
+                Rectangle().stroke(Color.white.opacity(0.08), lineWidth: 0.7)
+            )
+        )
     }
     
     private func iconForTab(_ tab: SettingsTab) -> String {
         switch tab {
         case .general:
             return "gearshape"
-        case .appearance:
-            return "paintbrush"
-        case .media:
-            return "music.note"
         case .battery:
             return "battery.100"
+        case .keyboard:
+            return "keyboard"
         }
     }
 }
 
 struct GeneralSettingsView: View {
+    @StateObject private var settings = AppSettings.shared
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             Text("General")
                 .font(.system(size: 20, weight: .bold))
-            
-            Toggle("Launch at Login", isOn: .constant(false))
-            
-            Toggle("Enable Haptic Feedback", isOn: .constant(true))
-            
-            Divider()
-            
-            Text("About")
-                .font(.system(size: 16, weight: .semibold))
-            
-            HStack {
-                Text("Version:")
-                Text("1.0.0")
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-}
+                .foregroundColor(.white)
 
-struct AppearanceSettingsView: View {
-    @StateObject private var coordinator = NotchViewCoordinator.shared
-    @State private var notchWidth: Double = 250
-    @State private var notchHeight: Double = 30
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Appearance")
-                .font(.system(size: 20, weight: .bold))
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Notch Width: \(Int(notchWidth))px")
-                    .font(.system(size: 13))
-                
-                Slider(value: $notchWidth, in: 200...400, step: 10)
-                    .onChange(of: notchWidth) { oldValue, newValue in
-                        coordinator.notchSize.width = newValue
-                    }
+            glassCard {
+                Toggle("Launch at Login", isOn: $settings.launchAtLogin)
+                Toggle("Enable Haptic Feedback", isOn: $settings.hapticFeedbackEnabled)
             }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Notch Height: \(Int(notchHeight))px")
-                    .font(.system(size: 13))
-                
-                Slider(value: $notchHeight, in: 25...50, step: 5)
-                    .onChange(of: notchHeight) { oldValue, newValue in
-                        coordinator.notchSize.height = newValue
-                    }
-            }
-        }
-        .onAppear {
-            notchWidth = coordinator.notchSize.width
-            notchHeight = coordinator.notchSize.height
-        }
-    }
-}
 
-struct MediaSettingsView: View {
-    @StateObject private var musicManager = MusicManager.shared
-    @State private var selectedController: MediaControllerType = .appleMusic
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Media Playback")
-                .font(.system(size: 20, weight: .bold))
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Media Controller")
-                    .font(.system(size: 13, weight: .medium))
-                
-                Picker("", selection: $selectedController) {
-                    ForEach(MediaControllerType.allCases, id: \.self) { type in
-                        Text(type.rawValue).tag(type)
-                    }
+            glassCard {
+                Text("About")
+                    .font(.system(size: 16, weight: .semibold))
+
+                HStack {
+                    Text("Version:")
+                    Text("1.0.0")
+                        .foregroundColor(.white.opacity(0.72))
                 }
-                .pickerStyle(RadioGroupPickerStyle())
-                .onChange(of: selectedController) { oldValue, newValue in
-                    musicManager.switchController(to: newValue)
-                }
+
+                Text("Changes are saved automatically.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.66))
             }
-            
-            Divider()
-            
-            Toggle("Show Music in Notch", isOn: .constant(true))
-            
-            Toggle("Auto-expand for Music", isOn: .constant(false))
         }
+        .foregroundColor(.white.opacity(0.92))
     }
 }
 
 struct BatterySettingsView: View {
+    @StateObject private var settings = AppSettings.shared
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Battery")
                 .font(.system(size: 20, weight: .bold))
-            
-            Toggle("Show Battery Notifications", isOn: .constant(true))
-            
-            Toggle("Show Charging Animation", isOn: .constant(true))
-            
-            Divider()
-            
-            Text("Notifications will appear when:")
-                .font(.system(size: 13, weight: .medium))
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("• Power adapter is connected/disconnected")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                
-                Text("• Battery reaches low power mode")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+
+            glassCard {
+                Toggle("Show Battery Notifications", isOn: $settings.showBatteryNotifications)
+
+                Toggle("Show Charging Animation", isOn: $settings.showChargingAnimation)
+
+                Divider()
+
+                Text("Notifications will appear when:")
+                    .font(.system(size: 13, weight: .medium))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("• Power adapter is connected/disconnected")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.7))
+
+                    Text("• Battery reaches low power mode")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.7))
+                }
             }
+        }
+        .foregroundColor(.white.opacity(0.92))
+    }
+}
+
+struct KeyboardSettingsView: View {
+    @StateObject private var keyboardManager = KeyboardRemapManager.shared
+    @State private var firstKey: String = ""
+    @State private var secondKey: String = ""
+    @State private var selectedKeyboardType: Int? = nil
+    @State private var focusedRuleID: UUID?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Keyboard")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
+
+            glassCard {
+                Toggle("Enable Key Remapping", isOn: $keyboardManager.isRemapEnabled)
+
+                if !keyboardManager.accessibilityGranted {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Accessibility permission is required for global remapping.")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.orange)
+
+                        HStack(spacing: 8) {
+                            Button("Open Permission Prompt") {
+                                _ = keyboardManager.ensureAccessibilityPermission(prompt: true)
+                            }
+                            .buttonStyle(.borderedProminent)
+
+                            Button("Refresh") {
+                                keyboardManager.refreshAccessibilityStatus()
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                }
+
+                if let lastStartError = keyboardManager.lastStartError {
+                    Text(lastStartError)
+                        .font(.system(size: 12))
+                        .foregroundColor(.orange)
+                }
+
+                Text("Type two letters to swap, like fg. Pressing f becomes g, and pressing g becomes f.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.7))
+
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("First")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.7))
+                        TextField("f", text: $firstKey)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 56)
+                            .onChange(of: firstKey) { _, newValue in
+                                firstKey = normalizedSingleLetter(from: newValue)
+                            }
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Second")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.7))
+                        TextField("g", text: $secondKey)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 56)
+                            .onChange(of: secondKey) { _, newValue in
+                                secondKey = normalizedSingleLetter(from: newValue)
+                            }
+                    }
+
+                    Picker("Keyboard", selection: $selectedKeyboardType) {
+                        Text("All Keyboards").tag(Int?.none)
+                        ForEach(keyboardManager.seenKeyboardTypes, id: \.self) { keyboardType in
+                            Text("Keyboard Type \(keyboardType)").tag(Int?.some(keyboardType))
+                        }
+                    }
+                    .frame(width: 180)
+
+                    Button("Add") {
+                        if keyboardManager.addRule(firstKey: firstKey, secondKey: secondKey, keyboardType: selectedKeyboardType) {
+                            focusedRuleID = keyboardManager.rules.last?.id
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(firstKey.count != 1 || secondKey.count != 1 || firstKey == secondKey)
+                }
+            }
+
+            glassCard {
+                if keyboardManager.rules.isEmpty {
+                    Text("No key swaps yet.")
+                        .foregroundColor(.white.opacity(0.7))
+                } else {
+                    ForEach(keyboardManager.rules) { rule in
+                        HStack {
+                            Toggle("", isOn: Binding(
+                                get: { rule.isEnabled },
+                                set: { newValue in
+                                    var updated = rule
+                                    updated.isEnabled = newValue
+                                    keyboardManager.updateRule(updated)
+                                }
+                            ))
+                            .toggleStyle(.switch)
+                            .labelsHidden()
+
+                            Button {
+                                focusedRuleID = rule.id
+                            } label: {
+                                Text("\(rule.firstKey.uppercased()) ↔ \(rule.secondKey.uppercased())")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(focusedRuleID == rule.id ? .white : .white.opacity(0.9))
+                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, 10)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                            .fill(focusedRuleID == rule.id ? Color.white.opacity(0.18) : Color.clear)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+
+                            Text(keyboardManager.keyboardLabel(for: rule.keyboardType))
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.7))
+
+                            if !rule.isEnabled {
+                                Text("Off")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        Capsule().fill(Color.white.opacity(0.12))
+                                    )
+                            }
+
+                            Spacer()
+
+                            Button("Remove") {
+                                keyboardManager.removeRule(id: rule.id)
+                            }
+                            .buttonStyle(.borderless)
+                            .foregroundColor(.red.opacity(0.85))
+                        }
+
+                        if rule.id != keyboardManager.rules.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
+        .foregroundColor(.white.opacity(0.92))
+        .onAppear {
+            keyboardManager.refreshAccessibilityStatus()
+            if firstKey.isEmpty { firstKey = "f" }
+            if secondKey.isEmpty { secondKey = "g" }
+        }
+    }
+
+    private func normalizedSingleLetter(from input: String) -> String {
+        let filtered = input.lowercased().filter { $0.isLetter || $0.isNumber }
+        guard let first = filtered.first else { return "" }
+        return String(first)
+    }
+}
+
+@ViewBuilder
+private func glassCard<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+    VStack(alignment: .leading, spacing: 12) {
+        content()
+    }
+    .padding(14)
+    .background(
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(.regularMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
+            )
+    )
+    .shadow(color: Color.black.opacity(0.16), radius: 10, y: 4)
+}
+
+struct GlassBackground: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.state = .active
+        view.blendingMode = .behindWindow
+        view.material = material
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+        nsView.material = material
+    }
+}
+
+struct SettingsWindowConfigurator: NSViewRepresentable {
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            if let window = view.window {
+                window.delegate = context.coordinator
+                window.titlebarAppearsTransparent = true
+                window.titleVisibility = .hidden
+                window.isOpaque = true
+                window.backgroundColor = NSColor(calibratedWhite: 0.10, alpha: 1.0)
+                window.toolbarStyle = .unified
+                window.hasShadow = true
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            if let window = nsView.window {
+                window.delegate = context.coordinator
+                window.titlebarAppearsTransparent = true
+                window.titleVisibility = .hidden
+                window.isOpaque = true
+                window.backgroundColor = NSColor(calibratedWhite: 0.10, alpha: 1.0)
+                window.toolbarStyle = .unified
+                window.hasShadow = true
+            }
+        }
+    }
+
+    final class Coordinator: NSObject, NSWindowDelegate {
+        func windowWillClose(_ notification: Notification) {
+            NSApp.setActivationPolicy(.accessory)
         }
     }
 }

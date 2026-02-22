@@ -33,10 +33,14 @@ struct ExternalDisplayToolsApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow?
+    private var leftCornerWindow: NSWindow?
+    private var rightCornerWindow: NSWindow?
     private var musicManager: MusicManager?
     private var bluetoothManager: BluetoothManager?
+    private var keyboardRemapManager: KeyboardRemapManager?
     private var screenLockObserver: Any?
-    private var mouseMonitor: Any?
+    private let cornerSize: CGFloat = 12
+    private let notchHostSize = CGSize(width: 520, height: 140)
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         return false
@@ -60,21 +64,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let window = NSApplication.shared.windows.first {
             self.window = window
-            window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
-            window.isOpaque = false
-            window.backgroundColor = .clear
-            window.hasShadow = false
-            window.styleMask = [.borderless, .fullSizeContentView]
-            window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
-            window.hidesOnDeactivate = false
-            window.level = .screenSaver
-            
-            if let screen = NSScreen.main {
-                window.setFrame(screen.frame, display: true)
-            }
-            
-            setupMouseTracking()
+            configureOverlayWindow(window)
+            positionNotchHostWindow(window, in: NSScreen.main)
+            createCornerWindows(in: NSScreen.main)
         }
         
         initializeManagers()
@@ -84,6 +76,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func initializeManagers() {
         musicManager = MusicManager.shared
         bluetoothManager = BluetoothManager.shared
+        keyboardRemapManager = KeyboardRemapManager.shared
+        _ = AppSettings.shared
         
         bluetoothManager?.onDeviceConnected = { deviceName in
             let coordinator = NotchViewCoordinator.shared
@@ -106,49 +100,116 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
-    
-    private func setupMouseTracking() {
-        guard let window = self.window else { return }
-        
-        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] event in
-            guard let self = self,
-                  let window = self.window,
-                  let contentView = window.contentView else { return event }
-            
-            let mouseLocation = event.locationInWindow
-            let coordinator = NotchViewCoordinator.shared
-            
-            let interactionFrame: CGRect
-            if coordinator.notchState == .open {
-                interactionFrame = CGRect(
-                    x: 0,
-                    y: 0,
-                    width: contentView.bounds.width,
-                    height: contentView.bounds.height
-                )
-            } else {
-                interactionFrame = CGRect(
-                    x: (contentView.bounds.width - coordinator.notchSize.width) / 2 - 50,
-                    y: contentView.bounds.height - coordinator.notchSize.height - 100,
-                    width: coordinator.notchSize.width + 100,
-                    height: coordinator.notchSize.height + 150
-                )
-            }
-            
-            if interactionFrame.contains(mouseLocation) {
-                return event
-            } else {
-                return nil
-            }
-        }
+
+    private func configureOverlayWindow(_ window: NSWindow) {
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = false
+        window.styleMask = [.borderless, .fullSizeContentView]
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.hidesOnDeactivate = false
+        window.level = .screenSaver
+    }
+
+    private func positionNotchHostWindow(_ window: NSWindow, in screen: NSScreen?) {
+        guard let screen else { return }
+
+        let frame = CGRect(
+            x: screen.frame.midX - notchHostSize.width / 2,
+            y: screen.frame.maxY - notchHostSize.height,
+            width: notchHostSize.width,
+            height: notchHostSize.height
+        )
+
+        window.setFrame(frame, display: false, animate: false)
+        window.orderFrontRegardless()
+    }
+
+    private func createCornerWindows(in screen: NSScreen?) {
+        guard let screen else { return }
+
+        let leftFrame = CGRect(
+            x: screen.frame.minX,
+            y: screen.frame.maxY - cornerSize,
+            width: cornerSize,
+            height: cornerSize
+        )
+
+        let rightFrame = CGRect(
+            x: screen.frame.maxX - cornerSize,
+            y: screen.frame.maxY - cornerSize,
+            width: cornerSize,
+            height: cornerSize
+        )
+
+        leftCornerWindow = makeCornerWindow(frame: leftFrame, position: .topLeft)
+        rightCornerWindow = makeCornerWindow(frame: rightFrame, position: .topRight)
+    }
+
+    private func makeCornerWindow(frame: CGRect, position: CornerPosition) -> NSWindow {
+        let cornerWindow = OverlayWindow(
+            contentRect: frame,
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        configureOverlayWindow(cornerWindow)
+        cornerWindow.contentView = NSHostingView(rootView: CornerOverlayView(position: position, cornerSize: cornerSize))
+        cornerWindow.orderFrontRegardless()
+        return cornerWindow
     }
     
     func applicationWillTerminate(_ notification: Notification) {
         if let observer = screenLockObserver {
             DistributedNotificationCenter.default().removeObserver(observer)
         }
-        if let monitor = mouseMonitor {
-            NSEvent.removeMonitor(monitor)
-        }
     }
+}
+
+private struct CornerOverlayView: View {
+    let position: CornerPosition
+    let cornerSize: CGFloat
+
+    var body: some View {
+        Canvas { context, size in
+            var path = Path()
+
+            switch position {
+            case .topLeft:
+                path.move(to: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: cornerSize, y: 0))
+                path.addArc(
+                    center: CGPoint(x: cornerSize, y: cornerSize),
+                    radius: cornerSize,
+                    startAngle: .degrees(270),
+                    endAngle: .degrees(180),
+                    clockwise: true
+                )
+                path.addLine(to: CGPoint(x: 0, y: 0))
+
+            case .topRight:
+                let x = size.width
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: cornerSize))
+                path.addArc(
+                    center: CGPoint(x: x - cornerSize, y: cornerSize),
+                    radius: cornerSize,
+                    startAngle: .degrees(0),
+                    endAngle: .degrees(270),
+                    clockwise: true
+                )
+                path.addLine(to: CGPoint(x: x, y: 0))
+            }
+
+            context.fill(path, with: .color(.black))
+        }
+        .frame(width: cornerSize, height: cornerSize)
+    }
+}
+
+private enum CornerPosition {
+    case topLeft
+    case topRight
 }
