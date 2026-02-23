@@ -40,6 +40,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var bluetoothManager: BluetoothManager?
     private var keyboardRemapManager: KeyboardRemapManager?
     private var screenLockObserver: Any?
+    private var didWakeObserver: Any?
+    private var screenParametersObserver: Any?
     private let cornerSize: CGFloat = 12
     private let notchHostSize = CGSize(width: 520, height: 140)
 
@@ -72,6 +74,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         initializeManagers()
         setupScreenLockObserver()
+        setupDisplayObservers()
     }
     
     private func initializeManagers() {
@@ -99,6 +102,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in
                 NotchViewCoordinator.shared.closeNotch()
             }
+        }
+    }
+
+    private func setupDisplayObservers() {
+        didWakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshOverlayLayoutAfterWake()
+        }
+
+        screenParametersObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshOverlayLayout()
         }
     }
 
@@ -130,9 +151,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.orderFrontRegardless()
     }
 
-    private func createCornerWindows(in screen: NSScreen?) {
-        guard let screen else { return }
+    private func refreshOverlayLayoutAfterWake() {
+        refreshOverlayLayout()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            self?.refreshOverlayLayout()
+        }
+    }
 
+    private func refreshOverlayLayout() {
+        guard let screen = NSScreen.main else { return }
+        if let window {
+            positionNotchHostWindow(window, in: screen)
+        }
+        positionCornerWindows(in: screen)
+    }
+
+    private func positionCornerWindows(in screen: NSScreen) {
         let leftFrame = CGRect(
             x: screen.frame.minX,
             y: screen.frame.maxY - cornerSize,
@@ -147,8 +181,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             height: cornerSize
         )
 
-        leftCornerWindow = makeCornerWindow(frame: leftFrame, position: .topLeft)
-        rightCornerWindow = makeCornerWindow(frame: rightFrame, position: .topRight)
+        if let leftCornerWindow {
+            leftCornerWindow.setFrame(leftFrame, display: true, animate: false)
+            leftCornerWindow.orderFrontRegardless()
+        } else {
+            leftCornerWindow = makeCornerWindow(frame: leftFrame, position: .topLeft)
+        }
+
+        if let rightCornerWindow {
+            rightCornerWindow.setFrame(rightFrame, display: true, animate: false)
+            rightCornerWindow.orderFrontRegardless()
+        } else {
+            rightCornerWindow = makeCornerWindow(frame: rightFrame, position: .topRight)
+        }
+    }
+
+    private func createCornerWindows(in screen: NSScreen?) {
+        guard let screen else { return }
+        positionCornerWindows(in: screen)
     }
 
     private func makeCornerWindow(frame: CGRect, position: CornerPosition) -> NSWindow {
@@ -167,6 +217,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         if let observer = screenLockObserver {
             DistributedNotificationCenter.default().removeObserver(observer)
+        }
+        if let observer = didWakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
+        if let observer = screenParametersObserver {
+            NotificationCenter.default.removeObserver(observer)
         }
     }
 }
