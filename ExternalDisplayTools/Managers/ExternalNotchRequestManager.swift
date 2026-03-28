@@ -19,16 +19,22 @@ final class ExternalNotchRequestManager: ObservableObject {
             .sink { _ in }
             .store(in: &cancellables)
 
-        ScreenStateManager.shared.$isScreenLocked
-            .sink { [weak self] isLocked in
-                guard isLocked else { return }
+        Publishers.CombineLatest(
+            ScreenStateManager.shared.$isScreenLocked,
+            ScreenStateManager.shared.$isScreenSaverActive
+        )
+            .map { isLocked, isScreenSaverActive in
+                isLocked || isScreenSaverActive
+            }
+            .sink { [weak self] isRestricted in
+                guard isRestricted else { return }
                 self?.clearActiveRequest(closeNotch: true)
             }
             .store(in: &cancellables)
     }
 
     func handle(url: URL) {
-        guard !ScreenStateManager.shared.isScreenLocked else { return }
+        guard !ScreenStateManager.shared.isInteractionRestricted else { return }
         guard activeRequest == nil else { return }
         guard let request = ExternalNotchRequestParser.parse(url: url) else { return }
 

@@ -6,10 +6,17 @@ class ScreenStateManager: ObservableObject {
     static let shared = ScreenStateManager()
 
     @Published var isScreenLocked: Bool = false
+    @Published var isScreenSaverActive: Bool = false
     @Published var isFullScreenAppActive: Bool = false
+
+    var isInteractionRestricted: Bool {
+        isScreenLocked || isScreenSaverActive
+    }
     
     private var cancellables = Set<AnyCancellable>()
     private var checkTimer: Timer?
+    private var lastScreenSaverStartDate: Date?
+    private var isScreenSaverLockSession: Bool = false
     
     private init() {
         setupObservers()
@@ -23,14 +30,49 @@ class ScreenStateManager: ObservableObject {
     private func setupObservers() {
         DistributedNotificationCenter.default()
             .publisher(for: Notification.Name("com.apple.screenIsLocked"))
-            .map { _ in true }
-            .assign(to: \.isScreenLocked, on: self)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.isScreenLocked = true
+                if self.lastScreenSaverStartDate?.timeIntervalSinceNow ?? -.infinity > -4 {
+                    self.isScreenSaverLockSession = true
+                    self.isScreenSaverActive = true
+                }
+            }
             .store(in: &cancellables)
             
         DistributedNotificationCenter.default()
             .publisher(for: Notification.Name("com.apple.screenIsUnlocked"))
-            .map { _ in false }
-            .assign(to: \.isScreenLocked, on: self)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.isScreenLocked = false
+                self.isScreenSaverLockSession = false
+                self.checkScreenSaverStatus()
+            }
+            .store(in: &cancellables)
+
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("com.apple.screensaver.didstart"))
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.lastScreenSaverStartDate = Date()
+                self.isScreenSaverActive = true
+                if self.isScreenLocked {
+                    self.isScreenSaverLockSession = true
+                }
+            }
+            .store(in: &cancellables)
+
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("com.apple.screensaver.didstop"))
+            .sink { [weak self] _ in
+                guard let self else { return }
+                if self.isScreenLocked && self.isScreenSaverLockSession {
+                    return
+                }
+                self.isScreenSaverActive = false
+                self.lastScreenSaverStartDate = nil
+                self.isScreenSaverLockSession = false
+            }
             .store(in: &cancellables)
         
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
@@ -42,9 +84,59 @@ class ScreenStateManager: ObservableObject {
     
     private func startFullScreenMonitoring() {
         checkTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            self?.checkFullScreenStatus()
+            self?.checkDynamicScreenState()
         }
+        checkDynamicScreenState()
+    }
+
+    private func checkDynamicScreenState() {
         checkFullScreenStatus()
+        checkScreenSaverStatus()
+    }
+
+    private func checkScreenSaverStatus() {
+        if isScreenLocked && isScreenSaverLockSession {
+            DispatchQueue.main.async {
+                self.isScreenSaverActive = true
+            }
+            return
+        }
+
+        let runningApps = NSWorkspace.shared.runningApplications
+        let isEngineRunning = runningApps.contains { app in
+            let bundleId = (app.bundleIdentifier ?? "").lowercased()
+            let executable = (app.executableURL?.lastPathComponent ?? "").lowercased()
+            let name = (app.localizedName ?? "").lowercased()
+
+            if bundleId.contains("screensaver") || bundleId.contains("legacyscreensaver") {
+                return true
+            }
+
+            if executable.contains("screensaver") || executable.contains("legacyscreensaver") {
+                return true
+            }
+
+            return name.contains("screensaver") || name.contains("legacyscreensaver")
+        }
+
+        let options = CGWindowListOption(arrayLiteral: .optionOnScreenOnly)
+        let windowList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: AnyObject]]
+        let hasScreenSaverWindow = windowList?.contains { window in
+            guard let owner = window[kCGWindowOwnerName as String] as? String else {
+                return false
+            }
+            let ownerName = owner.lowercased()
+            return ownerName.contains("screensaver") || ownerName.contains("legacyscreensaver")
+        } ?? false
+
+        let isScreenSaverActiveNow = isEngineRunning || hasScreenSaverWindow
+
+        DispatchQueue.main.async {
+            self.isScreenSaverActive = isScreenSaverActiveNow
+            if !isScreenSaverActiveNow {
+                self.lastScreenSaverStartDate = nil
+            }
+        }
     }
     
     private func checkFullScreenStatus() {

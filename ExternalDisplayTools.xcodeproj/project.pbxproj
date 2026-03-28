@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		103786A62F37CBD700711835 /* SkyLightWindow in Frameworks */ = {isa = PBXBuildFile; productRef = 103786A72F37CBD700711835 /* SkyLightWindow */; };
+		108A782B2F77EBBE007A14D1 /* SkyLightWindow in Frameworks */ = {isa = PBXBuildFile; productRef = 108A782A2F77EBBE007A14D1 /* SkyLightWindow */; };
 		10C26B102F367AB000FA4739 /* MediaRemoteAdapter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10C26B0F2F367AAF00FA4739 /* MediaRemoteAdapter.framework */; };
 		10C26B112F367AB100FA4739 /* MediaRemoteAdapter.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 10C26B0F2F367AAF00FA4739 /* MediaRemoteAdapter.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -88,7 +88,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				10C26B102F367AB000FA4739 /* MediaRemoteAdapter.framework in Frameworks */,
-				103786A62F37CBD700711835 /* SkyLightWindow in Frameworks */,
+				108A782B2F77EBBE007A14D1 /* SkyLightWindow in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -159,7 +159,7 @@
 			);
 			name = ExternalDisplayTools;
 			packageProductDependencies = (
-				103786A72F37CBD700711835 /* SkyLightWindow */,
+				108A782A2F77EBBE007A14D1 /* SkyLightWindow */,
 			);
 			productName = ExternalDisplayTools;
 			productReference = 10C26ADA2F2F7CF000FA4739 /* ExternalDisplayTools.app */;
@@ -244,7 +244,7 @@
 			mainGroup = 10C26AD12F2F7CF000FA4739;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				103786A52F37CBD700711835 /* XCRemoteSwiftPackageReference "SkyLightWindow" */,
+				108A78292F77EBB1007A14D1 /* XCRemoteSwiftPackageReference "SkyLightWindow" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 10C26ADB2F2F7CF000FA4739 /* Products */;
@@ -644,7 +644,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		103786A52F37CBD700711835 /* XCRemoteSwiftPackageReference "SkyLightWindow" */ = {
+		108A78292F77EBB1007A14D1 /* XCRemoteSwiftPackageReference "SkyLightWindow" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Lakr233/SkyLightWindow";
 			requirement = {
@@ -655,9 +655,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		103786A72F37CBD700711835 /* SkyLightWindow */ = {
+		108A782A2F77EBBE007A14D1 /* SkyLightWindow */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 103786A52F37CBD700711835 /* XCRemoteSwiftPackageReference "SkyLightWindow" */;
+			package = 108A78292F77EBB1007A14D1 /* XCRemoteSwiftPackageReference "SkyLightWindow" */;
 			productName = SkyLightWindow;
 		};
 /* End XCSwiftPackageProductDependency section */

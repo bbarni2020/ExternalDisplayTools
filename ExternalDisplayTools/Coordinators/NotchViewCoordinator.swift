@@ -20,6 +20,8 @@ class NotchViewCoordinator: ObservableObject {
     private let bluetoothManager = BluetoothManager.shared
     
     private var cancellables = Set<AnyCancellable>()
+    private var wasScreenLocked = false
+    private var wasScreenSaverActive = false
     
     private init() {
         setupSubscriptions()
@@ -34,9 +36,41 @@ class NotchViewCoordinator: ObservableObject {
             
         screenStateManager.$isScreenLocked
             .sink { [weak self] isLocked in
-                if !isLocked {
-                    self?.triggerUnlockAnimation()
+                guard let self else { return }
+                defer { self.wasScreenLocked = isLocked }
+
+                if self.wasScreenLocked,
+                   !isLocked,
+                   !self.screenStateManager.isScreenSaverActive,
+                   !self.wasScreenSaverActive {
+                    self.triggerUnlockAnimation()
                 }
+            }
+            .store(in: &cancellables)
+
+        screenStateManager.$isScreenSaverActive
+            .sink { [weak self] isScreenSaverActive in
+                guard let self else { return }
+                defer { self.wasScreenSaverActive = isScreenSaverActive }
+
+                if self.wasScreenSaverActive,
+                   !isScreenSaverActive,
+                   !self.screenStateManager.isScreenLocked {
+                    self.triggerScreenSaverEndAnimation()
+                }
+            }
+            .store(in: &cancellables)
+
+        Publishers.CombineLatest(
+            screenStateManager.$isScreenLocked,
+            screenStateManager.$isScreenSaverActive
+        )
+            .map { isLocked, isScreenSaverActive in
+                isLocked || isScreenSaverActive
+            }
+            .sink { [weak self] isRestricted in
+                guard isRestricted else { return }
+                self?.closeNotch()
             }
             .store(in: &cancellables)
             
@@ -80,6 +114,10 @@ class NotchViewCoordinator: ObservableObject {
     
     func triggerUnlockAnimation() {
         showSneakPeek(type: .unlock, icon: "lock.open.fill")
+    }
+
+    func triggerScreenSaverEndAnimation() {
+        showSneakPeek(type: .screenSaverEnd, icon: "sparkles")
     }
     
     func triggerBluetoothAnimation(connected: Bool) {

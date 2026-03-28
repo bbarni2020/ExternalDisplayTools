@@ -220,7 +220,7 @@ struct KeyboardSettingsView: View {
 
                 if !keyboardManager.accessibilityGranted {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Accessibility permission is required for global remapping.")
+                        Text("Accessibility and Input Monitoring permissions are required for global and system-level remapping.")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.orange)
 

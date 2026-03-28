@@ -14,6 +14,7 @@ struct NotchView: View {
     @State private var isClickedOpen = false
     @State private var openHoverWorkItem: DispatchWorkItem?
     @State private var closeHoverWorkItem: DispatchWorkItem?
+    @State private var externalPreviewCloseWorkItem: DispatchWorkItem?
     @State private var hoverReopenLockUntil: Date = .distantPast
     @State private var contentOpacity: Double = 1.0
     @State private var contentScale: CGFloat = 1.0
@@ -74,18 +75,23 @@ struct NotchView: View {
                 .animation(notchVisibilityAnimation, value: coordinator.shouldHideNotch)
                 .animation(notchMorphAnimation, value: targetNotchSize)
                 .onHover { hovering in
-                    if !coordinator.shouldHideNotch {
-                        handleHover(hovering)
-                    } else {
+                    if !canUseHoverOrTapInteractions {
                         isHovering = false
+                        openHoverWorkItem?.cancel()
+                        closeHoverWorkItem?.cancel()
+                        return
                     }
+                    handleHover(hovering)
                 }
                 .onTapGesture {
-                    if coordinator.notchState == .closed && !coordinator.shouldHideNotch {
+                    if !canUseHoverOrTapInteractions {
+                        return
+                    }
+                    if coordinator.notchState == .closed {
                         closeHoverWorkItem?.cancel()
                         isClickedOpen = true
                         doOpen()
-                    } else if coordinator.notchState == .open && isClickedOpen && !coordinator.shouldHideNotch {
+                    } else if coordinator.notchState == .open && isClickedOpen {
                         openHoverWorkItem?.cancel()
                         isClickedOpen = false
                         withAnimation(notchMorphAnimation) {
@@ -113,6 +119,7 @@ struct NotchView: View {
         }
         .onChange(of: externalRequestManager.activeRequest) { _ in
             animateContentTransition()
+            handleExternalRequestChange()
         }
         .onChange(of: screenStateManager.isScreenLocked) { isLocked in
             if isLocked {
@@ -175,7 +182,21 @@ struct NotchView: View {
     
     private var closedNotchView: some View {
         Group {
-            if screenStateManager.isScreenLocked {
+            if screenStateManager.isScreenSaverActive {
+                HStack(spacing: 0) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                        .frame(width: 20, height: 20)
+                        .contentTransition(.symbolEffect(.replace))
+                        .padding(.leading, 14)
+
+                    Spacer()
+                }
+                .frame(height: coordinator.notchSize.height)
+                .frame(maxHeight: .infinity, alignment: .center)
+                .transition(.opacity)
+            } else if screenStateManager.isScreenLocked {
                 HStack(spacing: 0) {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 12, weight: .semibold))
@@ -204,6 +225,11 @@ struct NotchView: View {
                 .frame(height: coordinator.notchSize.height)
                 .frame(maxHeight: .infinity, alignment: .center)
                 .transition(.opacity)
+            } else if let request = externalRequestManager.activeRequest {
+                closedExternalRequestView(request)
+                    .frame(height: coordinator.notchSize.height)
+                    .frame(maxHeight: .infinity, alignment: .center)
+                    .transition(.opacity)
             } else if !nowPlayingManager.title.isEmpty {
                 HStack(spacing: 0) {
                     nowPlayingArtwork(size: 18, cornerRadius: 5, iconSize: 10)
@@ -234,7 +260,9 @@ struct NotchView: View {
     
     private var expandedNotchView: some View {
         Group {
-            if screenStateManager.isScreenLocked {
+            if screenStateManager.isScreenSaverActive {
+                screenSaverExpandedView
+            } else if screenStateManager.isScreenLocked {
                 lockedExpandedView
             } else if let request = externalRequestManager.activeRequest {
                 externalRequestView(request)
@@ -262,6 +290,20 @@ struct NotchView: View {
                 .foregroundColor(.white.opacity(0.92))
 
             Text("Screen Locked")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white.opacity(0.9))
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var screenSaverExpandedView: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.white.opacity(0.92))
+
+            Text("Screen Saver Active")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.white.opacity(0.9))
 
@@ -352,6 +394,64 @@ struct NotchView: View {
         }
     }
 
+    private func closedExternalRequestView(_ request: ExternalNotchRequest) -> some View {
+        HStack(spacing: 0) {
+            externalLeftCompactView(request.left)
+                .frame(width: 18, height: 18)
+                .padding(.leading, 12)
+                .offset(y: -1)
+
+            Spacer()
+
+            externalRightCompactView(request.right)
+                .frame(width: 18, height: 18)
+                .padding(.trailing, 12)
+                .offset(y: -1)
+        }
+    }
+
+    @ViewBuilder
+    private func externalLeftCompactView(_ content: ExternalNotchLeftContent?) -> some View {
+        if let content {
+            switch content {
+            case .appBundleId(let bundleId):
+                if let appUrl = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) {
+                    Image(nsImage: NSWorkspace.shared.icon(forFile: appUrl.path))
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } else {
+                    Color.clear
+                }
+            }
+        } else {
+            Color.clear
+        }
+    }
+
+    @ViewBuilder
+    private func externalRightCompactView(_ content: ExternalNotchRightContent?) -> some View {
+        if let content {
+            switch content {
+            case .text(let value):
+                Text(value)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.92))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            case .icon(let name):
+                Image(systemName: name)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.92))
+            case .image(let url):
+                ExternalNotchRemoteImage(url: url, isAnimated: false)
+            case .gif(let url):
+                ExternalNotchRemoteImage(url: url, isAnimated: true)
+            }
+        } else {
+            Color.clear
+        }
+    }
+
     private func nowPlayingArtwork(size: CGFloat, cornerRadius: CGFloat, iconSize: CGFloat) -> some View {
         ZStack {
             if let artwork = nowPlayingManager.artworkImage {
@@ -418,6 +518,8 @@ struct NotchView: View {
         HStack(spacing: 12) {
             if coordinator.sneakPeek.type == .bluetooth {
                 BluetoothConnectionAnimation()
+            } else if coordinator.sneakPeek.type == .screenSaverEnd {
+                DropAnimation(icon: "sparkles")
             } else if coordinator.sneakPeek.type == .unlock {
                 HelloAnimation()
             } else {
@@ -447,8 +549,8 @@ struct NotchView: View {
     }
     
     private func doOpen() {
-        guard !screenStateManager.isScreenLocked else { return }
-        guard !nowPlayingManager.title.isEmpty else { return }
+        guard !screenStateManager.isInteractionRestricted else { return }
+        guard hasInteractiveContent else { return }
         withAnimation(notchMorphAnimation) {
             coordinator.openNotch()
         }
@@ -468,7 +570,7 @@ struct NotchView: View {
                       !isClickedOpen,
                       coordinator.notchState == .closed,
                       !coordinator.sneakPeek.show,
-                      !nowPlayingManager.title.isEmpty else { return }
+                          hasInteractiveContent else { return }
 
                 doOpen()
             }
@@ -492,7 +594,44 @@ struct NotchView: View {
         }
 
         closeHoverWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.42, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
+    }
+
+    private func handleExternalRequestChange() {
+        externalPreviewCloseWorkItem?.cancel()
+
+        guard externalRequestManager.activeRequest != nil else {
+            isClickedOpen = false
+            return
+        }
+
+        isClickedOpen = false
+
+        withAnimation(notchMorphAnimation) {
+            coordinator.openNotch()
+        }
+
+        let workItem = DispatchWorkItem {
+            guard externalRequestManager.activeRequest != nil,
+                  !isHovering,
+                  !isClickedOpen,
+                  coordinator.notchState == .open else { return }
+
+            withAnimation(notchMorphAnimation) {
+                coordinator.closeNotch()
+            }
+        }
+
+        externalPreviewCloseWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9, execute: workItem)
+    }
+
+    private var hasInteractiveContent: Bool {
+        externalRequestManager.activeRequest != nil || !nowPlayingManager.title.isEmpty
+    }
+
+    private var canUseHoverOrTapInteractions: Bool {
+        !coordinator.shouldHideNotch && !coordinator.sneakPeek.show && hasInteractiveContent
     }
 
     private var targetNotchSize: CGSize {
@@ -502,7 +641,7 @@ struct NotchView: View {
             return CGSize(width: width, height: height)
         }
 
-        let width: CGFloat = (!nowPlayingManager.title.isEmpty || screenStateManager.isScreenLocked || showUnlockedPreview) ? 270 : coordinator.notchSize.width
+        let width: CGFloat = (hasInteractiveContent || screenStateManager.isInteractionRestricted || showUnlockedPreview) ? 270 : coordinator.notchSize.width
         return CGSize(width: width, height: coordinator.notchSize.height)
     }
 

@@ -23,6 +23,7 @@ enum SneakContentType: Equatable {
     case download
     case bluetooth
     case unlock
+    case screenSaverEnd
 }
 
 enum MediaControllerType: String, CaseIterable {

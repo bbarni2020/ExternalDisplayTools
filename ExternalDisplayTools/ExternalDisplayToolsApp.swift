@@ -42,6 +42,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var screenLockObserver: Any?
     private var didWakeObserver: Any?
     private var screenParametersObserver: Any?
+    private var windowBecameMainObserver: Any?
     private let cornerSize: CGFloat = 12
     private let notchHostSize = CGSize(width: 520, height: 140)
 
@@ -75,6 +76,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         initializeManagers()
         setupScreenLockObserver()
         setupDisplayObservers()
+        setupWindowControlsHiding()
     }
     
     private func initializeManagers() {
@@ -121,6 +123,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             self?.refreshOverlayLayout()
         }
+    }
+
+    private func setupWindowControlsHiding() {
+        NSApplication.shared.windows.forEach { hideSystemWindowControls(for: $0) }
+
+        windowBecameMainObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeMainNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let window = notification.object as? NSWindow else { return }
+            self?.hideSystemWindowControls(for: window)
+        }
+    }
+
+    private func hideSystemWindowControls(for window: NSWindow) {
+        window.standardWindowButton(.closeButton)?.isHidden = true
+        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        window.standardWindowButton(.zoomButton)?.isHidden = true
     }
 
     private func configureOverlayWindow(_ window: NSWindow) {
@@ -222,6 +243,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
         if let observer = screenParametersObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = windowBecameMainObserver {
             NotificationCenter.default.removeObserver(observer)
         }
     }
