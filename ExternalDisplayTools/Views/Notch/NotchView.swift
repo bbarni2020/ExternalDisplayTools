@@ -264,12 +264,16 @@ struct NotchView: View {
                 screenSaverExpandedView
             } else if screenStateManager.isScreenLocked {
                 lockedExpandedView
+            } else if batteryManager.showChargingAnimation {
+                chargingExpandedView
             } else if let request = externalRequestManager.activeRequest {
                 externalRequestView(request)
             } else {
                 switch coordinator.currentView {
                 case .music:
                     musicView
+                case .battery:
+                    BatteryExpandedView()
                 case .call:
                     IncomingCallAnimation()
                 case .lowBattery:
@@ -304,6 +308,20 @@ struct NotchView: View {
                 .foregroundColor(.white.opacity(0.92))
 
             Text("Screen Saver Active")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white.opacity(0.9))
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var chargingExpandedView: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.yellow.opacity(0.95))
+
+            Text("Charging")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.white.opacity(0.9))
 

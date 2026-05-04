@@ -16,11 +16,20 @@ final class BatteryActivityManager: ObservableObject {
     
     /// Indicates if the device is plugged into power
     @Published var isPluggedIn: Bool = false
+
+    /// Indicates if the battery is currently charging
+    @Published var isCharging: Bool = false
+
+    /// Controls whether the charging animation should stay visible briefly
+    @Published var showChargingAnimation: Bool = false
     
     /// Optional callback when power source changes; passes new isPluggedIn value
     var onPowerSourceChange: ((Bool) -> Void)?
     
     private var runLoopSource: CFRunLoopSource?
+    private var chargingAnimationWorkItem: DispatchWorkItem?
+    private let chargingAnimationDuration: TimeInterval = 3.0
+    private let settings = AppSettings.shared
     
     /// Private initializer to setup initial values and observers
     private init() {
@@ -63,6 +72,19 @@ final class BatteryActivityManager: ObservableObject {
         } else {
             isPluggedIn = false
         }
+
+        let charging = (description[kIOPSIsChargingKey as String] as? Bool)
+            ?? (description[kIOPSIsChargingKey as String] as? NSNumber)?.boolValue
+            ?? false
+        let chargingChanged = isCharging != charging
+        if chargingChanged {
+            isCharging = charging
+            if charging {
+                startChargingAnimationIfNeeded()
+            } else {
+                stopChargingAnimation()
+            }
+        }
     }
     
     /// Callback for power source change notifications
@@ -93,5 +115,28 @@ final class BatteryActivityManager: ObservableObject {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .defaultMode)
             self.runLoopSource = nil
         }
+    }
+
+    private func startChargingAnimationIfNeeded() {
+        guard settings.showChargingAnimation else {
+            showChargingAnimation = false
+            return
+        }
+
+        chargingAnimationWorkItem?.cancel()
+        showChargingAnimation = true
+
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.showChargingAnimation = false
+        }
+
+        chargingAnimationWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + chargingAnimationDuration, execute: workItem)
+    }
+
+    private func stopChargingAnimation() {
+        chargingAnimationWorkItem?.cancel()
+        chargingAnimationWorkItem = nil
+        showChargingAnimation = false
     }
 }

@@ -1,8 +1,12 @@
 import SwiftUI
 
 struct BatteryExpandedView: View {
-    @StateObject private var batteryManager = BatteryActivityManager.shared
+    private let batteryManager = BatteryActivityManager.shared
     @StateObject private var coordinator = NotchViewCoordinator.shared
+    @State private var currentBatteryLevel: Double = BatteryActivityManager.shared.currentBatteryLevel
+    @State private var isPluggedIn: Bool = BatteryActivityManager.shared.isPluggedIn
+    @State private var isCharging: Bool = BatteryActivityManager.shared.isCharging
+    @State private var showChargingAnimation: Bool = BatteryActivityManager.shared.showChargingAnimation
     
     var body: some View {
         VStack(spacing: 0) {
@@ -19,6 +23,10 @@ struct BatteryExpandedView: View {
             Spacer()
         }
         .padding(24)
+        .onReceive(batteryManager.$currentBatteryLevel) { currentBatteryLevel = $0 }
+        .onReceive(batteryManager.$isPluggedIn) { isPluggedIn = $0 }
+        .onReceive(batteryManager.$isCharging) { isCharging = $0 }
+        .onReceive(batteryManager.$showChargingAnimation) { showChargingAnimation = $0 }
     }
     
     private var header: some View {
@@ -59,7 +67,7 @@ struct BatteryExpandedView: View {
                     .frame(width: 160, height: 160)
                 
                 Circle()
-                    .trim(from: 0, to: CGFloat(batteryManager.currentBatteryLevel / 100))
+                    .trim(from: 0, to: CGFloat(currentBatteryLevel / 100))
                     .stroke(
                         batteryColor,
                         style: StrokeStyle(lineWidth: 12, lineCap: .round)
@@ -68,11 +76,14 @@ struct BatteryExpandedView: View {
                     .rotationEffect(.degrees(-90))
                 
                 VStack(spacing: 4) {
-                    Text("\(Int(batteryManager.currentBatteryLevel))%")
+                    Text("\(Int(currentBatteryLevel))%")
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.white)
                     
-                    if batteryManager.isPluggedIn {
+                    if isCharging && showChargingAnimation {
+                        ChargingAnimation()
+                            .frame(width: 32, height: 32)
+                    } else if isPluggedIn {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 20))
                             .foregroundColor(.yellow)
@@ -84,7 +95,7 @@ struct BatteryExpandedView: View {
     
     private var batteryDetails: some View {
         VStack(spacing: 12) {
-            detailRow(icon: "powerplug", title: "Power Source", value: batteryManager.isPluggedIn ? "AC Power" : "Battery")
+            detailRow(icon: "powerplug", title: "Power Source", value: isPluggedIn ? "AC Power" : "Battery")
             
             detailRow(icon: "battery.100", title: "Status", value: batteryStatusText)
         }
@@ -117,9 +128,9 @@ struct BatteryExpandedView: View {
     }
     
     private var batteryColor: Color {
-        if batteryManager.currentBatteryLevel > 50 {
+        if currentBatteryLevel > 50 {
             return .green
-        } else if batteryManager.currentBatteryLevel > 20 {
+        } else if currentBatteryLevel > 20 {
             return .yellow
         } else {
             return .red
@@ -127,8 +138,10 @@ struct BatteryExpandedView: View {
     }
     
     private var batteryStatusText: String {
-        if batteryManager.isPluggedIn {
+        if isCharging {
             return "Charging"
+        } else if isPluggedIn {
+            return "AC Power"
         } else {
             return "Discharging"
         }

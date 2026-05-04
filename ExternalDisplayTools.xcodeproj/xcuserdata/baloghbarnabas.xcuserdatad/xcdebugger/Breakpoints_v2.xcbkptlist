@@ -34,6 +34,36 @@
             endingLineNumber = "471"
             landmarkName = "nowPlayingArtwork(size:cornerRadius:iconSize:)"
             landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "77E484CF-0EE6-4283-A132-9E1BE93447A4 - fc012ead72b446bf"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 () -&gt; SwiftUI._ConditionalContent&lt;&lt;&lt;opaque return type of SwiftUI.View.aspectRatio(_: Swift.Optional&lt;CoreGraphics.CGFloat&gt;, contentMode: SwiftUI.ContentMode) -&gt; some&gt;&gt;.0, &lt;&lt;opaque return type of SwiftUI.View.overlay&lt;&#x3c4;_0_0 where &#x3c4;_1_0: SwiftUI.View&gt;(_: &#x3c4;_1_0, alignment: SwiftUI.Alignment) -&gt; some&gt;&gt;.0&gt; in ExternalDisplayTools.NotchView.nowPlayingArtwork(size: CoreGraphics.CGFloat, cornerRadius: CoreGraphics.CGFloat, iconSize: CoreGraphics.CGFloat) -&gt; some"
+                  moduleName = "ExternalDisplayTools.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/baloghbarnabas/Documents/GitHub/ExternalDisplayTools/ExternalDisplayTools/Views/Notch/NotchView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "471"
+                  endingLineNumber = "471">
+               </Location>
+               <Location
+                  uuid = "77E484CF-0EE6-4283-A132-9E1BE93447A4 - 93ecd29ce0f5638e"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "ExternalDisplayTools.NotchView.externalRightCompactView(Swift.Optional&lt;ExternalDisplayTools.ExternalNotchRightContent&gt;) -&gt; some"
+                  moduleName = "ExternalDisplayTools.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/baloghbarnabas/Documents/GitHub/ExternalDisplayTools/ExternalDisplayTools/Views/Notch/NotchView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "471"
+                  endingLineNumber = "471">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

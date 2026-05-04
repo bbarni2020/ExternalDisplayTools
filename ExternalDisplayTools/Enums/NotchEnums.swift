@@ -11,6 +11,8 @@ enum NotchViews: String, CaseIterable, Equatable {
     case battery
     case call
     case lowBattery
+    case screenLocked
+    case screenSaver
 }
 
 enum SneakContentType: Equatable {

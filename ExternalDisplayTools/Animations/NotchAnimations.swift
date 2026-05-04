@@ -174,3 +174,55 @@ struct LowBatteryAnimation: View {
         }
     }
 }
+
+struct ScreenLockAnimation: View {
+    @State private var isAnimating = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.white)
+                .scaleEffect(isAnimating ? 1.08 : 0.94)
+
+            Text("Locked")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white)
+        }
+        .opacity(isAnimating ? 1 : 0.85)
+        .onAppear {
+            withAnimation(
+                Animation.easeInOut(duration: 0.8)
+                    .repeatForever(autoreverses: true)
+            ) {
+                isAnimating = true
+            }
+        }
+    }
+}
+
+struct ScreenSaverAnimation: View {
+    @State private var isAnimating = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.white)
+                .rotationEffect(.degrees(isAnimating ? 10 : -10))
+
+            Text("Screen Saver")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white)
+        }
+        .opacity(isAnimating ? 1 : 0.85)
+        .onAppear {
+            withAnimation(
+                Animation.easeInOut(duration: 1.0)
+                    .repeatForever(autoreverses: true)
+            ) {
+                isAnimating = true
+            }
+        }
+    }
+}

@@ -13,6 +13,7 @@ class NotchViewCoordinator: ObservableObject {
     @Published var shouldHideNotch: Bool = false
     
     private var sneakPeekDispatch: DispatchWorkItem?
+    private var chargingPresentationActive = false
     
     private let batteryManager = BatteryActivityManager.shared
     private let screenStateManager = ScreenStateManager.shared
@@ -31,6 +32,12 @@ class NotchViewCoordinator: ObservableObject {
         batteryManager.$isLowPowerMode
             .sink { [weak self] isLowPower in
                 self?.handleLowPowerModeChange(isLowPower)
+            }
+            .store(in: &cancellables)
+
+        batteryManager.$showChargingAnimation
+            .sink { [weak self] isChargingVisible in
+                self?.handleChargingPresentationChange(isChargingVisible)
             }
             .store(in: &cancellables)
             
@@ -101,6 +108,18 @@ class NotchViewCoordinator: ObservableObject {
     }
     
     private func handleLowPowerModeChange(_ : Bool) {}
+
+    private func handleChargingPresentationChange(_ isChargingVisible: Bool) {
+        if isChargingVisible {
+            chargingPresentationActive = true
+            currentView = .battery
+            notchState = .open
+        } else if chargingPresentationActive {
+            chargingPresentationActive = false
+            currentView = .home
+            notchState = .closed
+        }
+    }
     
     private func handleCallStateChange(_ isRinging: Bool) {
         if isRinging {
